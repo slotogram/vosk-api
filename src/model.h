@@ -31,7 +31,6 @@
 #include "nnet3/nnet-utils.h"
 #include "rnnlm/rnnlm-utils.h"
 #include "rnnlm/rnnlm-lattice-rescoring.h"
-#include <atomic>
 
 using namespace kaldi;
 using namespace std;
@@ -100,7 +99,7 @@ protected:
     fst::VectorFst<fst::StdArc> *rnnlm_lm_fst_ = NULL;
     kaldi::nnet3::Nnet rnnlm;
 
-    std::atomic<int> ref_cnt_;
+    int ref_cnt_;
 };
 
 #endif /* VOSK_MODEL_H */

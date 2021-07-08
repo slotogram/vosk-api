@@ -323,7 +323,7 @@ void Model::ReadDataFiles()
 
         KALDI_LOG << "Loading CARPA model from " << carpa_rxfilename_;
         std_lm_fst_ = fst::ReadFstKaldi(std_fst_rxfilename_);
-        fst::Project(std_lm_fst_, fst::ProjectType::OUTPUT);
+        fst::Project(std_lm_fst_, fst::ProjectType::PROJECT_OUTPUT);
         if (std_lm_fst_->Properties(fst::kILabelSorted, true) == 0) {
             fst::ILabelCompare<fst::StdArc> ilabel_comp;
             fst::ArcSort(std_lm_fst_, ilabel_comp);
@@ -334,14 +334,14 @@ void Model::ReadDataFiles()
 
 void Model::Ref() 
 {
-    std::atomic_fetch_add_explicit(&ref_cnt_, 1, std::memory_order_relaxed);
+    ref_cnt_++;
 }
 
 void Model::Unref() 
 {
-    if (std::atomic_fetch_sub_explicit(&ref_cnt_, 1, std::memory_order_release) == 1) {
-         std::atomic_thread_fence(std::memory_order_acquire);
-         delete this;
+    ref_cnt_--;
+    if (ref_cnt_ == 0) {
+        delete this;
     }
 }
 

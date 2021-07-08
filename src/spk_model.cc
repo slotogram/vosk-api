@@ -19,27 +19,52 @@ SpkModel::SpkModel(const char *speaker_path) {
 
     ReadConfigFromFile(speaker_path_str + "/mfcc.conf", &spkvector_mfcc_opts);
     spkvector_mfcc_opts.frame_opts.allow_downsample = true; // It is safe to downsample
-
+	
     ReadKaldiObject(speaker_path_str + "/final.ext.raw", &speaker_nnet);
+	
     SetBatchnormTestMode(true, &speaker_nnet);
     SetDropoutTestMode(true, &speaker_nnet);
     CollapseModel(nnet3::CollapseModelConfig(), &speaker_nnet);
+	//this speeds up multiple consequent xvector computations
+	NnetSimpleComputationOptions opts;
+	nnet3::CachingOptimizingCompilerOptions compiler_config;
+	compiler  = new nnet3::CachingOptimizingCompiler (speaker_nnet, opts.optimize_config, compiler_config);
 
     ReadKaldiObject(speaker_path_str + "/mean.vec", &mean);
     ReadKaldiObject(speaker_path_str + "/transform.mat", &transform);
-
+	ReadKaldiObject(speaker_path_str + "/plda", &plda);
     ref_cnt_ = 1;
 }
 
-void SpkModel::Ref()
+kaldi::Vector<BaseFloat> SpkModel::LoadXVector(std::string path, std::string key)
 {
-    std::atomic_fetch_add_explicit(&ref_cnt_, 1, std::memory_order_relaxed);
+	Vector<BaseFloat> ivector;
+	SequentialBaseFloatVectorReader train_ivector_reader(path);
+	for (; !train_ivector_reader.Done(); train_ivector_reader.Next()) {
+		std::string spk = train_ivector_reader.Key();
+		ivector = train_ivector_reader.Value();
+	}
+	return ivector;
 }
 
-void SpkModel::Unref()
+bool SpkModel::SaveXVector(kaldi::Vector<BaseFloat> xvector, std::string path, std::string key)
 {
-    if (std::atomic_fetch_sub_explicit(&ref_cnt_, 1, std::memory_order_release) == 1) {
-         std::atomic_thread_fence(std::memory_order_acquire);
-         delete this;
+	BaseFloatVectorWriter vector_writer(path);
+
+	vector_writer.Write(key, xvector);
+	return true;
+}
+
+void SpkModel::Ref() 
+{
+    ref_cnt_++;
+}
+
+void SpkModel::Unref() 
+{
+    ref_cnt_--;
+    if (ref_cnt_ == 0) {
+		delete compiler;
+        delete this;
     }
 }
