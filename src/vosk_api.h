@@ -345,6 +345,8 @@ const char *vosk_get_speakers_list(VoskRecognizer *recognizer, const char* path)
  */
 const char *vosk_get_ident_result(VoskRecognizer *recognizer, const char* path, float rec_len, float& top_score);
 
+
+
 /** Returns speech recognition result. Same as result, but doesn't wait for silence
  *  You usually call it in the end of the stream to get final bits of audio. It
  *  flushes the feature pipeline, so all remaining audio chunks got processed.
@@ -352,7 +354,6 @@ const char *vosk_get_ident_result(VoskRecognizer *recognizer, const char* path, 
  *  @returns speech result in JSON format.
  */
 const char *vosk_recognizer_final_result(VoskRecognizer *recognizer);
-
 
 
 /** Resets the recognizer

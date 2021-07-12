@@ -19,9 +19,8 @@ SpkModel::SpkModel(const char *speaker_path) {
 
     ReadConfigFromFile(speaker_path_str + "/mfcc.conf", &spkvector_mfcc_opts);
     spkvector_mfcc_opts.frame_opts.allow_downsample = true; // It is safe to downsample
-	
+
     ReadKaldiObject(speaker_path_str + "/final.ext.raw", &speaker_nnet);
-	
     SetBatchnormTestMode(true, &speaker_nnet);
     SetDropoutTestMode(true, &speaker_nnet);
     CollapseModel(nnet3::CollapseModelConfig(), &speaker_nnet);
@@ -33,6 +32,7 @@ SpkModel::SpkModel(const char *speaker_path) {
     ReadKaldiObject(speaker_path_str + "/mean.vec", &mean);
     ReadKaldiObject(speaker_path_str + "/transform.mat", &transform);
 	ReadKaldiObject(speaker_path_str + "/plda", &plda);
+
     ref_cnt_ = 1;
 }
 
@@ -55,16 +55,16 @@ bool SpkModel::SaveXVector(kaldi::Vector<BaseFloat> xvector, std::string path, s
 	return true;
 }
 
-void SpkModel::Ref() 
+void SpkModel::Ref()
 {
-    ref_cnt_++;
+    std::atomic_fetch_add_explicit(&ref_cnt_, 1, std::memory_order_relaxed);
 }
 
-void SpkModel::Unref() 
+void SpkModel::Unref()
 {
-    ref_cnt_--;
-    if (ref_cnt_ == 0) {
-		delete compiler;
-        delete this;
+    if (std::atomic_fetch_sub_explicit(&ref_cnt_, 1, std::memory_order_release) == 1) {
+         std::atomic_thread_fence(std::memory_order_acquire);
+         delete compiler;
+		 delete this;
     }
 }

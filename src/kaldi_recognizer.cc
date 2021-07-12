@@ -185,25 +185,24 @@ KaldiRecognizer::KaldiRecognizer(SpkModel *spk_model, bool need_mic) : model_(0)
 }
 
 
-
 KaldiRecognizer::~KaldiRecognizer() {
 	delete au_src_;
 	if (model_) {
-		delete decoder_;
-		delete feature_pipeline_;
-		delete silence_weighting_;
-		delete g_fst_;
-		delete decode_fst_;
-		delete spk_feature_;
-		delete lm_fst_;
+	delete decoder_;
+    delete feature_pipeline_;
+    delete silence_weighting_;
+    delete g_fst_;
+    delete decode_fst_;
+    delete spk_feature_;
+    delete lm_fst_;
 
-		delete info;
-		delete lm_to_subtract_det_backoff;
-		delete lm_to_subtract_det_scale;
-		delete lm_to_add_orig;
-		delete lm_to_add;
+    delete info;
+    delete lm_to_subtract_det_backoff;
+    delete lm_to_subtract_det_scale;
+    delete lm_to_add_orig;
+    delete lm_to_add;
 
-		model_->Unref();
+    model_->Unref();
 	}
 	if (spk_model_)
 	{
@@ -211,7 +210,6 @@ KaldiRecognizer::~KaldiRecognizer() {
 		delete out_str_;
 	}
 }
-
 
 void KaldiRecognizer::InitState()
 {
@@ -248,6 +246,9 @@ void KaldiRecognizer::CleanUp()
 	if (model_) {
 		silence_weighting_ = new kaldi::OnlineSilenceWeighting(*model_->trans_model_, model_->feature_info_.silence_weighting_config, 3);
 
+				 
+													 
+
 		if (decoder_)
 			frame_offset_ += decoder_->NumFramesDecoded();
 	}
@@ -258,20 +259,20 @@ void KaldiRecognizer::CleanUp()
     // Also restart if we retrieved final result already
 
     if (decoder_ == nullptr || state_ == RECOGNIZER_FINALIZED || frame_offset_ > 20000) {
-		if (model_) {
-			samples_round_start_ += samples_processed_;
-			samples_processed_ = 0;
-			frame_offset_ = 0;
+		if (model_) {			   
+        samples_round_start_ += samples_processed_;
+        samples_processed_ = 0;
+        frame_offset_ = 0;
 
-			delete decoder_;
-			delete feature_pipeline_;
+        delete decoder_;
+        delete feature_pipeline_;
 
-			feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline(model_->feature_info_);
-			decoder_ = new kaldi::SingleUtteranceNnet3Decoder(model_->nnet3_decoding_config_,
-				*model_->trans_model_,
-				*model_->decodable_info_,
-				model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
-				feature_pipeline_);
+        feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline (model_->feature_info_);
+        decoder_ = new kaldi::SingleUtteranceNnet3Decoder(model_->nnet3_decoding_config_,
+            *model_->trans_model_,
+            *model_->decodable_info_,
+            model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
+            feature_pipeline_);
 		}
         if (spk_model_) {
             delete spk_feature_;
@@ -351,23 +352,26 @@ bool KaldiRecognizer::AcceptWaveform(Vector<BaseFloat> &wdata)
     }
     state_ = RECOGNIZER_RUNNING;
 	if (model_) {
-		int step = static_cast<int>(sample_frequency_ * 0.2);
-		for (int i = 0; i < wdata.Dim(); i += step) {
-			SubVector<BaseFloat> r = wdata.Range(i, std::min(step, wdata.Dim() - i));
-			feature_pipeline_->AcceptWaveform(sample_frequency_, r);
-			UpdateSilenceWeights();
-			decoder_->AdvanceDecoding();
-		}
-		samples_processed_ += wdata.Dim();
-		if (decoder_->EndpointDetected(model_->endpoint_config_)) {
-			return true;
-		}
+    int step = static_cast<int>(sample_frequency_ * 0.2);
+    for (int i = 0; i < wdata.Dim(); i+= step) {
+        SubVector<BaseFloat> r = wdata.Range(i, std::min(step, wdata.Dim() - i));
+        feature_pipeline_->AcceptWaveform(sample_frequency_, r);
+        UpdateSilenceWeights();
+        decoder_->AdvanceDecoding();
+    }
+    samples_processed_ += wdata.Dim();
 
-	}
     if (spk_feature_) {
         spk_feature_->AcceptWaveform(sample_frequency_, wdata);
     }
 
+    if (decoder_->EndpointDetected(model_->endpoint_config_)) {
+        return true;
+    }
+	}
+	if (spk_feature_ && ! model_) {
+        spk_feature_->AcceptWaveform(sample_frequency_, wdata);
+    }
     return false;
 }
 
@@ -520,7 +524,6 @@ bool KaldiRecognizer::GetSpkVectorVadMic(Vector<BaseFloat> &out_xvector, int *nu
 
 }
 
-
 bool KaldiRecognizer::GetSpkVector(Vector<BaseFloat> &out_xvector, int *num_spk_frames)
 {
     vector<int32> nonsilence_frames;
@@ -532,7 +535,6 @@ bool KaldiRecognizer::GetSpkVector(Vector<BaseFloat> &out_xvector, int *num_spk_
     }
 
     int num_frames = spk_feature_->NumFramesReady() - frame_offset_ * 3;
-	std::cout << "num frames: " << num_frames << ' ' << frame_offset_ << '\n';
     Matrix<BaseFloat> mfcc(num_frames, spk_feature_->Dim());
 
     // Not very efficient, would be nice to have faster search
@@ -549,7 +551,7 @@ bool KaldiRecognizer::GetSpkVector(Vector<BaseFloat> &out_xvector, int *num_spk_
        mfcc.CopyRowFromVec(feat, num_nonsilence_frames);
        num_nonsilence_frames++;
     }
-	std::cout << "mfcc before: " << mfcc(1, 1) << ' ' << mfcc(2, 2) << '\n';
+
     *num_spk_frames = num_nonsilence_frames;
 
     // Don't extract vector if not enough data
@@ -725,10 +727,18 @@ const char *KaldiRecognizer::GetIdentityMic(const char* path, float rec_len, flo
 	top_score = max_score;
 	return out.c_str();
 }
+											
 
-const char *KaldiRecognizer::MbrResult(CompactLattice &clat)
+const char *KaldiRecognizer::MbrResult(CompactLattice &rlat)
 {
-    MinimumBayesRisk mbr(clat);
+    CompactLattice aligned_lat;
+    if (model_->winfo_) {
+        WordAlignLattice(rlat, *model_->trans_model_, *model_->winfo_, 0, &aligned_lat);
+    } else {
+        aligned_lat = rlat;
+    }
+
+    MinimumBayesRisk mbr(aligned_lat);
     const vector<BaseFloat> &conf = mbr.GetOneBestConfidences();
     const vector<int32> &words = mbr.GetOneBest();
     const vector<pair<BaseFloat, BaseFloat> > &times =
@@ -848,15 +858,23 @@ const char *KaldiRecognizer::NbestResult(CompactLattice &clat)
     for (int k = 0; k < nbest_lats.size(); k++) {
 
       Lattice nlat = nbest_lats[k];
+      RmEpsilon(&nlat);
       CompactLattice nclat;
+      CompactLattice aligned_nclat;
       ConvertLattice(nlat, &nclat);
+
+      if (model_->winfo_) {
+          WordAlignLattice(nclat, *model_->trans_model_, *model_->winfo_, 0, &aligned_nclat);
+      } else {
+          aligned_nclat = nclat;
+      }
 
       std::vector<int32> words;
       std::vector<int32> begin_times;
       std::vector<int32> lengths;
       CompactLattice::Weight weight;
 
-      CompactLatticeToWordAlignmentWeight(nclat, &words, &begin_times, &lengths, &weight);
+      CompactLatticeToWordAlignmentWeight(aligned_nclat, &words, &begin_times, &lengths, &weight);
       float likelihood = -(weight.Weight().Value1() + weight.Weight().Value2());
 
       stringstream text;
@@ -887,68 +905,58 @@ const char *KaldiRecognizer::NbestResult(CompactLattice &clat)
 
 const char* KaldiRecognizer::GetResult()
 {
-	if (model_) {
-		if (decoder_->NumFramesDecoded() == 0) {
-			return StoreEmptyReturn();
-		}
+	if (model_) {			  
+    if (decoder_->NumFramesDecoded() == 0) {
+        return StoreEmptyReturn();
+    }
 
-		kaldi::CompactLattice clat;
-		kaldi::CompactLattice rlat;
-		decoder_->GetLattice(true, &clat);
+    kaldi::CompactLattice clat;
+    kaldi::CompactLattice rlat;
+    decoder_->GetLattice(true, &clat);
 
-		if (model_->rnnlm_lm_fst_) {
-			kaldi::ComposeLatticePrunedOptions compose_opts;
-			compose_opts.lattice_compose_beam = 3.0;
-			compose_opts.max_arcs = 3000;
+    if (model_->rnnlm_lm_fst_) {
+        kaldi::ComposeLatticePrunedOptions compose_opts;
+        compose_opts.lattice_compose_beam = 3.0;
+        compose_opts.max_arcs = 3000;
 
-			TopSortCompactLatticeIfNeeded(&clat);
-			fst::ComposeDeterministicOnDemandFst<fst::StdArc> combined_lms(lm_to_subtract_det_scale, lm_to_add);
-			CompactLattice composed_clat;
-			ComposeCompactLatticePruned(compose_opts, clat,
-				&combined_lms, &rlat);
-			lm_to_add_orig->Clear();
-		}
-		else if (model_->std_lm_fst_) {
-			Lattice lat1;
+        TopSortCompactLatticeIfNeeded(&clat);
+        fst::ComposeDeterministicOnDemandFst<fst::StdArc> combined_lms(lm_to_subtract_det_scale, lm_to_add);
+        CompactLattice composed_clat;
+        ComposeCompactLatticePruned(compose_opts, clat,
+                                    &combined_lms, &rlat);
+        lm_to_add_orig->Clear();
+    } else if (model_->std_lm_fst_) {
+        Lattice lat1;
 
-			ConvertLattice(clat, &lat1);
-			fst::ScaleLattice(fst::GraphLatticeScale(-1.0), &lat1);
-			fst::ArcSort(&lat1, fst::OLabelCompare<kaldi::LatticeArc>());
-			kaldi::Lattice composed_lat;
-			fst::Compose(lat1, *lm_fst_, &composed_lat);
-			fst::Invert(&composed_lat);
-			kaldi::CompactLattice determinized_lat;
-			DeterminizeLattice(composed_lat, &determinized_lat);
-			fst::ScaleLattice(fst::GraphLatticeScale(-1), &determinized_lat);
-			fst::ArcSort(&determinized_lat, fst::OLabelCompare<kaldi::CompactLatticeArc>());
+        ConvertLattice(clat, &lat1);
+        fst::ScaleLattice(fst::GraphLatticeScale(-1.0), &lat1);
+        fst::ArcSort(&lat1, fst::OLabelCompare<kaldi::LatticeArc>());
+        kaldi::Lattice composed_lat;
+        fst::Compose(lat1, *lm_fst_, &composed_lat);
+        fst::Invert(&composed_lat);
+        kaldi::CompactLattice determinized_lat;
+        DeterminizeLattice(composed_lat, &determinized_lat);
+        fst::ScaleLattice(fst::GraphLatticeScale(-1), &determinized_lat);
+        fst::ArcSort(&determinized_lat, fst::OLabelCompare<kaldi::CompactLatticeArc>());
 
-			kaldi::ConstArpaLmDeterministicFst const_arpa_fst(model_->const_arpa_);
-			kaldi::CompactLattice composed_clat;
-			kaldi::ComposeCompactLatticeDeterministic(determinized_lat, &const_arpa_fst, &composed_clat);
-			kaldi::Lattice composed_lat1;
-			ConvertLattice(composed_clat, &composed_lat1);
-			fst::Invert(&composed_lat1);
-			DeterminizeLattice(composed_lat1, &rlat);
-		}
-		else {
-			rlat = clat;
-		}
+        kaldi::ConstArpaLmDeterministicFst const_arpa_fst(model_->const_arpa_);
+        kaldi::CompactLattice composed_clat;
+        kaldi::ComposeCompactLatticeDeterministic(determinized_lat, &const_arpa_fst, &composed_clat);
+        kaldi::Lattice composed_lat1;
+        ConvertLattice(composed_clat, &composed_lat1);
+        fst::Invert(&composed_lat1);
+        DeterminizeLattice(composed_lat1, &rlat);
+    } else {
+        rlat = clat;
+    }
 
-		fst::ScaleLattice(fst::GraphLatticeScale(0.9), &rlat); // Apply rescoring weight
-		CompactLattice aligned_lat;
-		if (model_->winfo_) {
-			WordAlignLattice(rlat, *model_->trans_model_, *model_->winfo_, 0, &aligned_lat);
-		}
-		else {
-			aligned_lat = rlat;
-		}
+    fst::ScaleLattice(fst::GraphLatticeScale(0.9), &rlat); // Apply rescoring weight
 
-		if (max_alternatives_ == 0) {
-			return MbrResult(aligned_lat);
-		}
-		else {
-			return NbestResult(aligned_lat);
-		}
+    if (max_alternatives_ == 0) {
+        return MbrResult(rlat);
+    } else {
+        return NbestResult(rlat);
+    }
 	}
 	else return XvectorResult();
 }
@@ -1001,17 +1009,16 @@ const char* KaldiRecognizer::FinalResult()
         return StoreEmptyReturn();
     }
 	if (model_) {
-		feature_pipeline_->InputFinished();
-		UpdateSilenceWeights();
-		decoder_->AdvanceDecoding();
-		decoder_->FinalizeDecoding();
+    feature_pipeline_->InputFinished();
+    UpdateSilenceWeights();
+    decoder_->AdvanceDecoding();
+    decoder_->FinalizeDecoding();
 	}
     state_ = RECOGNIZER_FINALIZED;
     GetResult();
 
     // Free some memory while we are finalized, next
     // iteration will reinitialize them anyway
-
     delete decoder_;
     delete feature_pipeline_;
     delete silence_weighting_;
@@ -1277,10 +1284,11 @@ BaseFloat KaldiRecognizer::Cos2Score(Vector<BaseFloat> train, Vector<BaseFloat> 
 	return score;
 }
 
-
 void KaldiRecognizer::Reset()
 {
-    decoder_->FinalizeDecoding();
+    if (state_ == RECOGNIZER_RUNNING) {
+        decoder_->FinalizeDecoding();
+    }
     StoreEmptyReturn();
     state_ = RECOGNIZER_ENDPOINT;
 }

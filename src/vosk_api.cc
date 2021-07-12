@@ -25,6 +25,7 @@
 #include <experimental/filesystem>
 
 namespace fs = std::experimental::filesystem;
+
 using namespace kaldi;
 
 VoskModel *vosk_model_new(const char *model_path)
@@ -376,6 +377,7 @@ const char *vosk_get_ident_result(VoskRecognizer *recognizer, const char* path, 
 {
 	return ((KaldiRecognizer *)recognizer)->GetIdentityMic(path, rec_len, top_score);
 }
+
 
 void vosk_recognizer_reset(VoskRecognizer *recognizer)
 {

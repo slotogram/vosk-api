@@ -18,12 +18,14 @@
 #include "base/kaldi-common.h"
 #include "online2/online-feature-pipeline.h"
 #include "nnet3/nnet-utils.h"
+#include <atomic>
 #include "ivector/plda.h"
 #include "nnet3/am-nnet-simple.h"
 #include "nnet3/nnet-am-decodable-simple.h"
 
 using namespace kaldi;
 using namespace kaldi::nnet3;
+
 class KaldiRecognizer;
 
 class SpkModel {
@@ -37,7 +39,7 @@ public:
 
 protected:
     friend class KaldiRecognizer;
-	~SpkModel() { 		}; //compiler->~CachingOptimizingCompiler();
+    ~SpkModel() {};
 
     kaldi::nnet3::Nnet speaker_nnet;
     kaldi::Vector<BaseFloat> mean;
@@ -47,7 +49,7 @@ protected:
 
     MfccOptions spkvector_mfcc_opts;
 
-    int ref_cnt_;
+    std::atomic<int> ref_cnt_;
 };
 
 #endif /* VOSK_SPK_MODEL_H */
