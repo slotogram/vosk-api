@@ -490,20 +490,96 @@ bool Recognizer::GetSpkVectorVad(Vector<BaseFloat> &out_xvector, int *num_spk_fr
 	//nnet3::CachingOptimizingCompiler compiler(spk_model_->speaker_nnet, opts.optimize_config, compiler_config);
 	//std::cout << "features: " << features(1,1) << ' ' << features(2,2) << '\n';
 	Vector<BaseFloat> xvector;
+	//RunNnetComputation(features, spk_model_->speaker_nnet, &compiler, &xvector);
 	RunNnetComputation(features, spk_model_->speaker_nnet, spk_model_->compiler, &xvector);
 
 	// Whiten the vector with global mean and transform and normalize mean
 	xvector.AddVec(-1.0, spk_model_->mean);
+	std::cout << "xvector: " << xvector(1) << ' ' << xvector(2) << '\n';
+	
+	BaseFloat norm = 1001;
+	//sometimes calculations are incorrect
+	//i dont know what is the cause
+	//after AddMatVec xvector values are incorrectly too high
+	int counter = 0;
+	while ((norm > 1000)&&(counter<5))
+	{	
+		out_xvector.SetZero();
 
-	out_xvector.Resize(spk_model_->transform.NumRows(), kSetZero);
-	out_xvector.AddMatVec(1.0, spk_model_->transform, kNoTrans, xvector, 0.0);
+		out_xvector.Resize(spk_model_->transform.NumRows(), kSetZero);
+		//check if some values are not actually zeros
+		for (int i = 0; i < out_xvector.Dim(); i++)
+		{
+			if (out_xvector(i) != 0)
+				std::cout << out_xvector(i) << " ";
+		}
+		std::cout << '\n';
 
-	BaseFloat norm = out_xvector.Norm(2.0);
+		out_xvector.AddMatVec(1.0, spk_model_->transform, kNoTrans, xvector, 0.0);
+		std::cout << "out_xvector: " << out_xvector(1) << ' ' << out_xvector(2) << '\n';
+		if (abs(out_xvector(1)) < 0.00000001)
+		{
+			std::cout << "xvector ERRROR AddMatVec: out_xvector1 == 0" << '\n';
+		}
+		
+
+		norm = out_xvector.Norm(2.0);
+		counter++;
+		if (counter > 3)//Dont know how much should be
+		{
+			/*for (int i = 0; i < out_xvector.Dim(); i++)
+			
+			{
+				std::cout << out_xvector(i)<<" ";				
+			}
+			std::cout << '\n';*/
+			
+			nnet3::NnetSimpleComputationOptions opts;
+			nnet3::CachingOptimizingCompilerOptions compiler_config;
+			nnet3::CachingOptimizingCompiler compiler(spk_model_->speaker_nnet, opts.optimize_config, compiler_config);
+			//std::cout << "features: " << features(1,1) << ' ' << features(2,2) << '\n';
+			Vector<BaseFloat> xvector1;
+			RunNnetComputation(features, spk_model_->speaker_nnet, &compiler, &xvector1);
+			//RunNnetComputation(features, spk_model_->speaker_nnet, spk_model_->compiler, &xvector);
+
+			// Whiten the vector with global mean and transform and normalize mean
+			xvector1.AddVec(-1.0, spk_model_->mean);
+
+			for (int i = 0; i < xvector.Dim(); i++)
+			{
+				if (xvector(i)!= xvector1(i))
+					std::cout << xvector(i)<<" " << xvector1(i) << "\n";
+			}
+			std::cout << '\n';
+			
+			out_xvector.Resize(spk_model_->transform.NumRows(), kSetZero);
+
+			//check if some values are not actually zeros
+			for (int i = 0; i < out_xvector.Dim(); i++)
+			{
+				if (out_xvector(i) != 0)
+					std::cout << out_xvector(i) << " ";
+			}
+			std::cout << '\n';
+
+			out_xvector.AddMatVec(1.0, spk_model_->transform, kNoTrans, xvector1, 0.0);
+			norm = out_xvector.Norm(2.0);
+		}
+	}
 	BaseFloat ratio = norm / sqrt(out_xvector.Dim()); // how much larger it is
 												  // than it would be, in
 												  // expectation, if normally
+	std::cout << norm << '\n';
+	if (norm == INFINITY)
+	{
+		std::cout << "xvector ERRROR: Norm INF" << '\n';
+	}
 	out_xvector.Scale(1.0 / ratio);
 	std::cout << "xvector: " << out_xvector(1) << ' '<< out_xvector(2) << '\n';
+	if (abs(out_xvector(1)) < 0.00000001)
+	{
+		std::cout << "xvector ERRROR: xvector1 == 0" << '\n';
+	}
 	return true;
 }
 

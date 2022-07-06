@@ -27,6 +27,7 @@ SpkModel::SpkModel(const char *speaker_path) {
 	//this speeds up multiple consequent xvector computations
 	NnetSimpleComputationOptions opts;
 	nnet3::CachingOptimizingCompilerOptions compiler_config;
+	compiler_config.cache_capacity = 128;
 	compiler  = new nnet3::CachingOptimizingCompiler (speaker_nnet, opts.optimize_config, compiler_config);
 
     ReadKaldiObject(speaker_path_str + "/mean.vec", &mean);

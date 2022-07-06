@@ -344,7 +344,16 @@ float vosk_plda_score_mic_len(VoskRecognizer *recognizer, const char *spk_path, 
  */
 float vosk_plda_score_wav(VoskRecognizer *recognizer, const char *spk_path, const char *spk_id, const char *wav_input_path);
 
+/** combines to arks and saves to spk_ark
+ *
+ */
+void combine_xv_arks(const char *temp_ark, const char *spk_ark);
 
+/** put 3-rd column to first in trials list(VoxCeleb compatible)
+ *
+ *  @returns ture if all trials were processed
+ */
+bool vosk_shuffle_trial_list(const char *trials_path, const char *out_path);
 /** score trials using plda model and xvector archive ark_path
  *
  *  @returns ture if all trials were processed
@@ -353,15 +362,28 @@ bool vosk_plda_score_trial(VoskRecognizer *recognizer, const char *ark_path, con
 
 /** Get resulting eer from voxceleb scores file
  *
- *  @returns ture if all was processed
+ *  @returns true if all was processed
  */
 bool vosk_get_eer(VoskRecognizer *recognizer, const char *scores_path);
+
+/** creates train speaker avg xvectors
+ *
+ *  @returns true if all xvector models were created
+ */
+bool vosk_create_speaker_xvectors(VoskRecognizer *recognizer, const char *ark_path, const char *ark_out_path);
+
+
+ /** computes xvectors for wav folder of voxceleb
+  *
+  *  @returns true if all xvectors were created
+  */
+bool vosk_compute_voxceleb_xvectors(VoskRecognizer *recognizer, const char *ark_path, const char *voxceleb_path);
 
 /** computes xvectors for wav folder of voxceleb
  *
  *  @returns true if all xvectors were created
  */
-bool vosk_compute_voxceleb_xvectors(VoskRecognizer *recognizer, const char *ark_path, const char *voxceleb_path);
+bool vosk_compute_path_xvectors(VoskRecognizer *recognizer, const char *ark_path, const char *voxceleb_path);
 
 /** deletes user from ark file
  *

@@ -364,7 +364,31 @@ float vosk_plda_score_wav(VoskRecognizer *recognizer, const char *spk_path, cons
 	else
 		return -1000;
 }
+bool vosk_shuffle_trial_list(const char *trials_path, const char *out_path)
+{
+	Input ki(trials_path);
+	bool binary = false;
+	Output ko(out_path, binary);
 
+	std::string line;
+	bool get_first = true;
+	while (std::getline(ki.Stream(), line)) {
+		std::vector<std::string> fields;
+		SplitStringToVector(line, " \t\n\r", true, &fields);
+		if (get_first && fields.size() != 3) {
+			KALDI_ERR << "Bad line "
+				<< "in input (expected two fields: label key1 key2): " << line;
+		}
+
+		get_first = false;
+		//std::string label = fields[0], key1 = fields[1], key2 = fields[2];
+		//std::string label = fields[2], key1 = fields[1], key2 = fields[0];
+		if (fields.size() == 3)
+			ko.Stream() << fields[2] << ' ' << fields[1] << ' ' << fields[0] << std::endl;
+	}
+	ko.Close();
+	return true;
+}
 bool vosk_plda_score_trial(VoskRecognizer *recognizer, const char *ark_path, const char *trials_path, const char *out_path)
 {
 	if (((KaldiRecognizer *)recognizer)->PldaTrials(ark_path, trials_path, out_path))
@@ -385,6 +409,97 @@ bool vosk_get_eer(VoskRecognizer *recognizer, const char *scores_path)
 		return false;
 
 }
+
+
+bool vosk_create_speaker_xvectors(VoskRecognizer *recognizer, const char *ark_path, const char *ark_out_path)
+{
+	std::string ark_path1(ark_path), ark_out_path1(ark_out_path);
+	ark_path1.insert(0, "ark:"); ark_out_path1.insert(0, "ark:");
+
+	SequentialBaseFloatVectorReader test_ivector_reader(ark_path1);
+
+	typedef unordered_map<string, Vector<BaseFloat>*, StringHasher> HashType;
+	typedef unordered_map<string, int32, StringHasher> HashType2;
+
+	// These hashes will contain the iVectors in the PLDA subspace
+	// (that makes the within-class variance unit and diagonalizes the
+	// between-class covariance).  They will also possibly be length-normalized,
+	// depending on the config.
+	HashType test_ivectors;
+	HashType avg_ivectors;
+	HashType2 spk_count;
+	int32 num_test_ivectors = 0;
+	int32 num_examples = 1;
+	int32 dim = 0;
+	KALDI_LOG << "Reading test xVectors";
+	for (; !test_ivector_reader.Done(); test_ivector_reader.Next()) {
+		std::string utt = test_ivector_reader.Key();
+		if (test_ivectors.count(utt) != 0) {
+			KALDI_ERR << "Duplicate test xVector found for utterance " << utt;
+		}
+		//get speaker_id
+		
+		std::string utt1 = utt;
+		while (utt1.find('\\') != string::npos)
+		{
+			utt1 = utt1.substr(utt1.find('\\') + 1);
+		}
+		utt1 = utt1.substr(0,utt1.find('-'));
+		
+
+		const Vector<BaseFloat> &ivector = test_ivector_reader.Value();
+		if (avg_ivectors.count(utt1) == 0) {
+			avg_ivectors[utt1] = new Vector<BaseFloat>(ivector.Dim());
+			*avg_ivectors[utt1] = ivector;
+			spk_count[utt1] = 1;
+			dim = ivector.Dim();
+		}
+		else
+		{
+			spk_count[utt1]++;
+			avg_ivectors[utt1]->AddVec(1,ivector);// += ivector;
+		}
+
+		Vector<BaseFloat> *transformed_ivector = new Vector<BaseFloat>(dim);
+		*transformed_ivector = ivector;
+		test_ivectors[utt] = transformed_ivector;
+		num_test_ivectors++;
+	}
+	KALDI_LOG << "Read " << num_test_ivectors << " test iVectors.";
+	if (num_test_ivectors == 0)
+		KALDI_ERR << "No test xVectors present.";
+
+	//get avg_spk_xvector
+	Vector<BaseFloat> *transformed_ivector = new Vector<BaseFloat>(dim);
+	for (HashType::iterator iter = avg_ivectors.begin();
+		iter != avg_ivectors.end(); ++iter)
+	{
+		
+		transformed_ivector->Set((BaseFloat)spk_count[iter->first]);
+		avg_ivectors[iter->first]->DivElements(*transformed_ivector);
+		
+	}
+	delete transformed_ivector;
+		//save avg_xvector
+
+	BaseFloatVectorWriter vector_writer(ark_path1);
+	for (HashType::iterator iter = avg_ivectors.begin();
+		iter != avg_ivectors.end(); ++iter)
+	{
+		vector_writer.Write(iter->first, *iter->second);
+	}
+	vector_writer.Close();
+
+	for (HashType::iterator iter = test_ivectors.begin();
+		iter != test_ivectors.end(); ++iter)
+		delete iter->second;
+	for (HashType::iterator iter = avg_ivectors.begin();
+		iter != avg_ivectors.end(); ++iter)
+		delete iter->second;
+
+	return true;
+}
+
 bool vosk_compute_voxceleb_xvectors(VoskRecognizer *recognizer, const char *ark_path, const char *voxceleb_path)
 {
 	std::string ark_path1(ark_path), vox_path(voxceleb_path);
@@ -415,6 +530,28 @@ bool vosk_compute_voxceleb_xvectors(VoskRecognizer *recognizer, const char *ark_
 		}
 	}
 		//std::cout << entry.path() << std::endl; 
+}
+
+bool vosk_compute_path_xvectors(VoskRecognizer *recognizer, const char *ark_path, const char *voxceleb_path)
+{
+	std::string ark_path1(ark_path), vox_path(voxceleb_path);
+	ark_path1.insert(0, "ark:");
+	int offset = vox_path.length();
+	std::string::size_type pos = 0;
+	BaseFloatVectorWriter vector_writer(ark_path1);
+	std::string wav_path;
+	for (const auto & entry : fs::recursive_directory_iterator(voxceleb_path))
+	{
+		wav_path = entry.path().string();
+		if (wav_path.find(std::string(".wav")) != std::string::npos)
+		{
+			read_wav(recognizer, wav_path.c_str());
+			Vector<BaseFloat> xvector = ((KaldiRecognizer *)recognizer)->GetXVector();
+
+			vector_writer.Write(wav_path, xvector);
+		}
+	}
+	//std::cout << entry.path() << std::endl; 
 }
 
 const char *vosk_get_speakers_list(VoskRecognizer *recognizer, const char* path)
