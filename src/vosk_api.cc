@@ -89,7 +89,7 @@ VoskRecognizer *vosk_recognizer_new_spk(VoskModel *model, float sample_rate, Vos
 
 VoskRecognizer *vosk_recognizer_new_spk_no_model(VoskSpkModel *spk_model, bool need_mic)
 {
-	return (VoskRecognizer *)new KaldiRecognizer((SpkModel *)spk_model, need_mic);
+	return (VoskRecognizer *)new Recognizer((SpkModel *)spk_model, need_mic);
 }
 
 VoskRecognizer *vosk_recognizer_new_grm(VoskModel *model, float sample_rate, const char *grammar)
@@ -173,12 +173,12 @@ const char *vosk_recognizer_final_result(VoskRecognizer *recognizer)
 
 /*Vector<BaseFloat> vosk_getXVector(VoskRecognizer *recognizer)
 {
-	return ((KaldiRecognizer *)recognizer)->GetXVector();
+	return ((Recognizer *)recognizer)->GetXVector();
 }
 
 BaseFloat vosk_plda2Score(VoskRecognizer * recognizer, Vector<BaseFloat> train, Vector<BaseFloat> test)
 {
-	return ((KaldiRecognizer *)recognizer)->Plda2Score(train,test);
+	return ((Recognizer *)recognizer)->Plda2Score(train,test);
 }
 */
 
@@ -195,7 +195,7 @@ bool read_wav(VoskRecognizer *recognizer, const char* path)
 		final = vosk_recognizer_accept_waveform(recognizer, buf, nread);
 	}
 	fclose(wavin);
-	//((KaldiRecognizer*)recognizer).spk_feature_->InputFinished();
+	//((Recognizer*)recognizer).spk_feature_->InputFinished();
 	return true;
 }
 
@@ -265,7 +265,7 @@ Vector<BaseFloat> load_xvector(const char* path, const char* utt_id)
 
 bool vosk_save_xvector_mic(VoskRecognizer *recognizer, const char *ark_path, const char *speaker_id, float rec_len)
 {
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVectorMic(rec_len);
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVectorMic(rec_len);
 	if (testxv.Dim() != 0)
 	{
 		save_xvector(ark_path, testxv, speaker_id);
@@ -277,7 +277,7 @@ bool vosk_save_xvector_mic(VoskRecognizer *recognizer, const char *ark_path, con
 bool vosk_save_xvector_wav(VoskRecognizer *recognizer, const char *ark_path, const char *speaker_id, const char *wav_path)
 {
 	read_wav(recognizer, wav_path);
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVector();
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVector();
 	if (testxv.Dim() != 0)
 	{
 		save_xvector(ark_path, testxv, speaker_id);
@@ -289,35 +289,35 @@ bool vosk_save_xvector_wav(VoskRecognizer *recognizer, const char *ark_path, con
 float vosk_plda2Score(VoskRecognizer *recognizer, const char *datatrain, const char *datatest)
 {
 	read_wav(recognizer, datatrain);	
-	Vector<BaseFloat> trainxv = ((KaldiRecognizer *)recognizer)->GetXVector();
+	Vector<BaseFloat> trainxv = ((Recognizer *)recognizer)->GetXVector();
 	read_wav(recognizer, datatest);	
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVector();
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVector();
 
-	return ((KaldiRecognizer *)recognizer)->Plda2Score(trainxv, testxv);
+	return ((Recognizer *)recognizer)->Plda2Score(trainxv, testxv);
 }
 
 float vosk_cos2Score(VoskRecognizer *recognizer, const char *datatrain, const char *datatest, bool norm)
 {
 	read_wav(recognizer, datatrain);
-	Vector<BaseFloat> trainxv = ((KaldiRecognizer *)recognizer)->GetXVector();
+	Vector<BaseFloat> trainxv = ((Recognizer *)recognizer)->GetXVector();
 	
 	read_wav(recognizer, datatest);
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVector();
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVector();
 
 	//save_xvector(datatrain, trainxv, "test11");
 	//save_xvector(datatest, testxv, "test22");
 
 
-	return ((KaldiRecognizer *)recognizer)->Cos2Score(trainxv, testxv, norm);
+	return ((Recognizer *)recognizer)->Cos2Score(trainxv, testxv, norm);
 }
 
 float vosk_cosScoreMic(VoskRecognizer *recognizer, const char *datatrain, bool norm)
 {
 	read_wav(recognizer, datatrain);
-	Vector<BaseFloat> trainxv = ((KaldiRecognizer *)recognizer)->GetXVector();
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVectorMic(4);
+	Vector<BaseFloat> trainxv = ((Recognizer *)recognizer)->GetXVector();
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVectorMic(4);
 	if (testxv.Dim() != 0)
-		return ((KaldiRecognizer *)recognizer)->Cos2Score(trainxv, testxv, norm);
+		return ((Recognizer *)recognizer)->Cos2Score(trainxv, testxv, norm);
 	else 
 		return -1000;
 }
@@ -325,10 +325,10 @@ float vosk_cosScoreMic(VoskRecognizer *recognizer, const char *datatrain, bool n
 float vosk_pldaScoreMic(VoskRecognizer *recognizer, const char *datatrain)
 {
 	read_wav(recognizer, datatrain);
-	Vector<BaseFloat> trainxv = ((KaldiRecognizer *)recognizer)->GetXVector();
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVectorMic(4);
+	Vector<BaseFloat> trainxv = ((Recognizer *)recognizer)->GetXVector();
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVectorMic(4);
 	if (testxv.Dim() != 0)
-		return ((KaldiRecognizer *)recognizer)->Plda2Score(trainxv, testxv);
+		return ((Recognizer *)recognizer)->Plda2Score(trainxv, testxv);
 	else
 		return -1000;
 }
@@ -336,9 +336,9 @@ float vosk_pldaScoreMic(VoskRecognizer *recognizer, const char *datatrain)
 float vosk_plda_score_mic(VoskRecognizer *recognizer, const char *spk_path, const char *spk_id)
 {
 	Vector<BaseFloat> trainxv = load_xvector(spk_path, spk_id);
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVectorMic(4);
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVectorMic(4);
 	if (testxv.Dim() != 0 && trainxv.Dim() != 0)
-		return ((KaldiRecognizer *)recognizer)->Plda2Score(trainxv, testxv);
+		return ((Recognizer *)recognizer)->Plda2Score(trainxv, testxv);
 	else
 		return -1000;
 }
@@ -346,9 +346,9 @@ float vosk_plda_score_mic(VoskRecognizer *recognizer, const char *spk_path, cons
 float vosk_plda_score_mic_len(VoskRecognizer *recognizer, const char *spk_path, const char *spk_id, float rec_len)
 {
 	Vector<BaseFloat> trainxv = load_xvector(spk_path, spk_id);
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVectorMic(rec_len);
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVectorMic(rec_len);
 	if (testxv.Dim() != 0 && trainxv.Dim() != 0)
-		return ((KaldiRecognizer *)recognizer)->Plda2Score(trainxv, testxv);
+		return ((Recognizer *)recognizer)->Plda2Score(trainxv, testxv);
 	else
 		return -1000;
 }
@@ -357,10 +357,10 @@ float vosk_plda_score_wav(VoskRecognizer *recognizer, const char *spk_path, cons
 {
 	read_wav(recognizer, wav_input_path);
 	Vector<BaseFloat> trainxv = load_xvector(spk_path, spk_id);
-	Vector<BaseFloat> testxv = ((KaldiRecognizer *)recognizer)->GetXVector();
+	Vector<BaseFloat> testxv = ((Recognizer *)recognizer)->GetXVector();
 	
 	if (testxv.Dim() != 0 && trainxv.Dim() != 0)
-		return ((KaldiRecognizer *)recognizer)->Plda2Score(trainxv, testxv);
+		return ((Recognizer *)recognizer)->Plda2Score(trainxv, testxv);
 	else
 		return -1000;
 }
@@ -391,9 +391,9 @@ bool vosk_shuffle_trial_list(const char *trials_path, const char *out_path)
 }
 bool vosk_plda_score_trial(VoskRecognizer *recognizer, const char *ark_path, const char *trials_path, const char *out_path)
 {
-	if (((KaldiRecognizer *)recognizer)->PldaTrials(ark_path, trials_path, out_path))
+	if (((Recognizer *)recognizer)->PldaTrials(ark_path, trials_path, out_path))
 	{
-		((KaldiRecognizer *)recognizer)->GetEer(out_path);
+		((Recognizer *)recognizer)->GetEer(out_path);
 		return true;
 	}
 	else
@@ -403,7 +403,7 @@ bool vosk_plda_score_trial(VoskRecognizer *recognizer, const char *ark_path, con
 
 bool vosk_get_eer(VoskRecognizer *recognizer, const char *scores_path)
 {
-	if (((KaldiRecognizer *)recognizer)->GetEer(scores_path))
+	if (((Recognizer *)recognizer)->GetEer(scores_path))
 		return true;
 	else
 		return false;
@@ -514,7 +514,7 @@ bool vosk_compute_voxceleb_xvectors(VoskRecognizer *recognizer, const char *ark_
 		if (wav_path.find(std::string(".wav")) != std::string::npos)
 		{
 			read_wav(recognizer, wav_path.c_str());
-			Vector<BaseFloat> xvector = ((KaldiRecognizer *)recognizer)->GetXVector();
+			Vector<BaseFloat> xvector = ((Recognizer *)recognizer)->GetXVector();
 
 			wav_path = wav_path.substr(offset + 1, wav_path.length() - offset - 1);
 			//std::cout << wav_path << std::endl;
@@ -546,7 +546,7 @@ bool vosk_compute_path_xvectors(VoskRecognizer *recognizer, const char *ark_path
 		if (wav_path.find(std::string(".wav")) != std::string::npos)
 		{
 			read_wav(recognizer, wav_path.c_str());
-			Vector<BaseFloat> xvector = ((KaldiRecognizer *)recognizer)->GetXVector();
+			Vector<BaseFloat> xvector = ((Recognizer *)recognizer)->GetXVector();
 
 			vector_writer.Write(wav_path, xvector);
 		}
@@ -556,16 +556,16 @@ bool vosk_compute_path_xvectors(VoskRecognizer *recognizer, const char *ark_path
 
 const char *vosk_get_speakers_list(VoskRecognizer *recognizer, const char* path)
 {
-	return ((KaldiRecognizer *)recognizer)->GetSpksList(path);
+	return ((Recognizer *)recognizer)->GetSpksList(path);
 }
 bool vosk_delete_user(VoskRecognizer *recognizer, const char* model_path, const char* user_id)
 {
-	return ((KaldiRecognizer *)recognizer)->DeleteSpeaker(model_path, user_id);
+	return ((Recognizer *)recognizer)->DeleteSpeaker(model_path, user_id);
 }
 
 const char *vosk_get_ident_result(VoskRecognizer *recognizer, const char* path, float rec_len, float& top_score)
 {
-	return ((KaldiRecognizer *)recognizer)->GetIdentityMic(path, rec_len, top_score);
+	return ((Recognizer *)recognizer)->GetIdentityMic(path, rec_len, top_score);
 }
 
 

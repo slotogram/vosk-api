@@ -1243,7 +1243,7 @@ const char* Recognizer::FinalResult()
     return last_result_.c_str();
 }
 
-Vector<BaseFloat> KaldiRecognizer::GetXVector()
+Vector<BaseFloat> Recognizer::GetXVector()
 {
 	Vector<BaseFloat> xvector;
 	if (state_ != RECOGNIZER_RUNNING) {
@@ -1273,7 +1273,7 @@ Vector<BaseFloat> KaldiRecognizer::GetXVector()
 	return xvector;
 }
 
-Vector<BaseFloat> KaldiRecognizer::GetXVectorMic(float rec_len)
+Vector<BaseFloat> Recognizer::GetXVectorMic(float rec_len)
 {
 	Vector<BaseFloat> xvector;
 	if (!(state_ == RECOGNIZER_RUNNING || state_ == RECOGNIZER_INITIALIZED)) {
@@ -1310,7 +1310,7 @@ Vector<BaseFloat> KaldiRecognizer::GetXVectorMic(float rec_len)
 	return xvector;
 }
 
-BaseFloat KaldiRecognizer::Plda2Score(Vector<BaseFloat> train, Vector<BaseFloat> test)
+BaseFloat Recognizer::Plda2Score(Vector<BaseFloat> train, Vector<BaseFloat> test)
 {
 	int32 dim = spk_model_->plda.Dim();
 	PldaConfig plda_config;
@@ -1326,7 +1326,7 @@ BaseFloat KaldiRecognizer::Plda2Score(Vector<BaseFloat> train, Vector<BaseFloat>
 	return score;
 }
 
-bool KaldiRecognizer::PldaTrials(const char *ark_path, const char *trials_path, const char *out_path)
+bool Recognizer::PldaTrials(const char *ark_path, const char *trials_path, const char *out_path)
 {
 	int32 dim = spk_model_->plda.Dim();
 	PldaConfig plda_config;
@@ -1435,7 +1435,7 @@ BaseFloat ComputeEer(std::vector<BaseFloat> *target_scores,
 	return eer;
 }
 
-bool KaldiRecognizer::GetEer(const char *scores_rxfilename)
+bool Recognizer::GetEer(const char *scores_rxfilename)
 {
 	std::vector<BaseFloat> target_scores, nontarget_scores;
 	Input ki(scores_rxfilename);
@@ -1486,7 +1486,7 @@ bool KaldiRecognizer::GetEer(const char *scores_rxfilename)
 
 }
 
-BaseFloat KaldiRecognizer::Cos2Score(Vector<BaseFloat> train, Vector<BaseFloat> test,bool norm)
+BaseFloat Recognizer::Cos2Score(Vector<BaseFloat> train, Vector<BaseFloat> test,bool norm)
 {
 	//int32 dim = spk_model_->plda.Dim();
 	BaseFloat score = VecVec(train, test);
