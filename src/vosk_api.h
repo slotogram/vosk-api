@@ -115,6 +115,17 @@ VoskRecognizer *vosk_recognizer_new(VoskModel *model, float sample_rate);
 VoskRecognizer *vosk_recognizer_new_spk(VoskModel *model, float sample_rate, VoskSpkModel *spk_model);
 
 
+/** Creates the recognizer object with speaker recognition
+ *
+ *  With the speaker recognition mode the recognizer not just recognize
+ *  text but also return speaker vectors one can use for speaker identification
+ *
+ *  @param sample_rate The sample rate of the audio you going to feed into the recognizer
+ *  @param spk_model speaker model for speaker identification
+ *  @returns recognizer object */
+VoskRecognizer *vosk_recognizer_new_spk_no_model(VoskSpkModel *spk_model, bool need_mic);
+
+
 /** Creates the recognizer object with the phrase list
  *
  *  Sometimes when you want to improve recognition accuracy and when you don't need
@@ -262,6 +273,114 @@ const char *vosk_recognizer_result(VoskRecognizer *recognizer);
  * </pre>
  */
 const char *vosk_recognizer_partial_result(VoskRecognizer *recognizer);
+
+/** Returns XVector for current audio processed by reconizer
+ *
+ *  @returns xvector in Vector<BaseFloat> format. Xvector is mean substracted, lda transformed and length normalized
+ */
+//Vector<BaseFloat> vosk_getXVector(VoskRecognizer *recognizer);
+
+/** Returns plda score for 2 xvectors
+ *
+ *  @returns plda score for 2 xvectors.
+ */
+//BaseFloat vosk_plda2Score(VoskRecognizer *recognizer, Vector<BaseFloat> train, Vector<BaseFloat> test);
+
+/** Save in archive xvector that was recorded by mic
+ *
+ *  @returns Returns true if speaker xvector was sucessfully created and saved
+ */
+bool vosk_save_xvector_mic(VoskRecognizer *recognizer, const char *ark_path, const char *speaker_id, float rec_len);
+
+
+
+/** Save in archive xvector that contains in wav on path. ark path is path to user storage ark file
+ *
+ *  @returns if xvector was sucessfully saved
+ */
+bool vosk_save_xvector_wav(VoskRecognizer *recognizer, const char *ark_path, const char *speaker_id, const char *wav_path);
+
+
+/** Returns plda score for 2 xvectors
+ *
+ *  @returns plda score for 2 xvectors.
+ */
+float vosk_plda2Score(VoskRecognizer *recognizer, const char *datatrain, const char *datatest);
+
+/** Returns cos score for 2 xvectors
+ *
+ *  @returns cos score for 2 xvectors.
+ */
+float vosk_cos2Score(VoskRecognizer *recognizer, const char *datatrain, const char *datatest, bool norm=false);
+
+/** Returns cos score for 2 xvectors
+ *
+ *  @returns cos score for 2 xvectors.
+ */
+float vosk_cosScoreMic(VoskRecognizer *recognizer, const char *datatrain, bool norm = false);
+
+/** Returns plda score for 2 xvectors
+ *
+ *  @returns plda score for 2 xvectors.
+ */
+float vosk_pldaScoreMic(VoskRecognizer *recognizer, const char *datatrain);
+
+/** Returns plda score for 2 xvectors. Train xvector should be stored in ark file (spk_path). 
+ *
+ *  @returns plda score for 2 xvectors.
+ */
+float vosk_plda_score_mic(VoskRecognizer *recognizer, const char *spk_path, const char *spk_id);
+
+/** Returns plda score for 2 xvectors. Train xvector should be stored in ark file (spk_path). Record length defined
+ *
+ *  @returns plda score for 2 xvectors.
+ */
+float vosk_plda_score_mic_len(VoskRecognizer *recognizer, const char *spk_path, const char *spk_id, float rec_len);
+
+
+/** Returns plda score for 2 xvectors. Train xvector should be stored in ark file (spk_path). wav_input_path is path to test wav audio.
+ *
+ *  @returns plda score for 2 xvectors.
+ */
+float vosk_plda_score_wav(VoskRecognizer *recognizer, const char *spk_path, const char *spk_id, const char *wav_input_path);
+
+
+/** score trials using plda model and xvector archive ark_path
+ *
+ *  @returns ture if all trials were processed
+ */
+bool vosk_plda_score_trial(VoskRecognizer *recognizer, const char *ark_path, const char *trials_path, const char *out_path);
+
+/** Get resulting eer from voxceleb scores file
+ *
+ *  @returns ture if all was processed
+ */
+bool vosk_get_eer(VoskRecognizer *recognizer, const char *scores_path);
+
+/** computes xvectors for wav folder of voxceleb
+ *
+ *  @returns true if all xvectors were created
+ */
+bool vosk_compute_voxceleb_xvectors(VoskRecognizer *recognizer, const char *ark_path, const char *voxceleb_path);
+
+/** deletes user from ark file
+ *
+ *  @returns true if user was deleted
+ */
+bool vosk_delete_user(VoskRecognizer *recognizer, const char* model_path, const char* user_id);
+
+/** reads list of speakers names separated by '\n' from ark file on @path.
+ *
+ *  @returns string with all speaker id's in ark file
+ */
+const char *vosk_get_speakers_list(VoskRecognizer *recognizer, const char* path);
+
+/** Computes speaker xvector recorded by mic and returns speaker id string
+ *
+ *  @returns speaker id string for speaker that is most similar to recorded xvector
+ */
+const char *vosk_get_ident_result(VoskRecognizer *recognizer, const char* path, float rec_len, float& top_score);
+
 
 
 /** Returns speech recognition result. Same as result, but doesn't wait for silence

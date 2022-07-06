@@ -1,0 +1,536 @@
+[33mcommit 915dcab59706ff353e6350170487bdcfb0b53dab[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Jul 11 15:54:42 2021 +0200
+
+    Add doc
+
+[33mcommit d82052b16804f2390f679d3f14a1f06aa715a1aa[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Jul 11 11:26:32 2021 +0200
+
+    Better have it here
+
+[33mcommit dbb65bc71c6f2875268388cb6953380d66dc5b8c[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Jul 11 11:01:56 2021 +0200
+
+    Unify example
+
+[33mcommit 2498bc595b98796c734071d4f7c6257c95483a97[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Jul 11 00:28:23 2021 +0200
+
+    Add module file
+
+[33mcommit fee63d712f2512966d22b82ec4b1f8d63f447f03[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sat Jul 10 23:44:15 2021 +0200
+
+    Add go bindings
+
+[33mcommit 5965ea30e6b130a57e57d584d59a6540e59db7bf[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Jul 6 12:11:12 2021 +0200
+
+    Fetch_sub returns original value
+
+[33mcommit 5c75495c030e1e3460a37ede67c408da311754cc[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Jul 6 11:09:34 2021 +0200
+
+    Atomic refcounting for thread safety. See
+    
+    https://github.com/alphacep/vosk-api/issues/606
+    
+    for more details
+
+[33mcommit 98ae3c66cbe09e9bfb606c58b3d714c14a35da5f[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Jun 28 02:09:06 2021 +0200
+
+    Bump version
+
+[33mcommit 942e15484a421fc930be8a03c6ce63b521c53cbf[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Jun 28 01:59:43 2021 +0200
+
+    Protect against multiple resets
+
+[33mcommit 2349e66a973a8c5eb4391a4f2bc5b8a375815e9f[m
+Author: Lars Kiesow <lkiesow@uos.de>
+Date:   Sun Jun 27 17:06:11 2021 +0200
+
+    Subtitles require word times (#607)
+    
+    This is a port of the recent addition of commit 7ccf743, adding
+    `KaldiRecognizer.SetWords(True)` to the other examples dealing with
+    subtitles to the WebVTT example.
+    
+    Without this, the example will not work with the most recent `vosk`
+    (0.3.30) Python package.
+
+[33mcommit 5750e3224f504fd80608161e139063a9d9f88cfb[m
+Merge: 558b4dd 02ef49f
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Jun 24 20:09:12 2021 +0200
+
+    Merge branch 'master' of github.com:alphacep/vosk-api
+
+[33mcommit 558b4dd69e75e7f5d0644c5221302b6035cbfe99[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Jun 24 20:08:54 2021 +0200
+
+    Don't align lattice twice
+
+[33mcommit 02ef49f67efcdf5b9c5340a1f57ab5fcaa62b727[m
+Author: Lars Kiesow <lkiesow@uos.de>
+Date:   Thu Jun 24 18:35:30 2021 +0200
+
+    Allow Saving WebVTT (#605)
+    
+    This patch is a small extension to the WebVTT example which allows to
+    directly save the WebVTT output to a file like this:
+    
+        ./test_webvtt.py test.wav out.vtt
+
+[33mcommit 7cdf8f1d0335acf556e254e70a39bd69c7e3f027[m
+Author: Lars Kiesow <lkiesow@uos.de>
+Date:   Wed Jun 23 00:16:33 2021 +0200
+
+    Add Python WebVTT Example (#601)
+    
+    This patch adds an example for using webvtt-py to generate WebVTT files
+    from Vosk output. This is similar to the SRT example but still very
+    useful for generating an example video subtitle usable in web contexts.
+
+[33mcommit 7f894f784afa349c5add3fdf3c371d24bcbbb0e4[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Jun 21 00:19:55 2021 +0200
+
+    Better check for the model files
+
+[33mcommit a770251151a205182d4fa937d89cf5641ecdf069[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Jun 20 21:30:58 2021 +0200
+
+    Bump nodejs version to 0.3.30
+
+[33mcommit 7ccf743bb65810c67ff02d8d0958c0371c60ae68[m[33m ([m[1;33mtag: 0.3.30[m[33m)[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Jun 10 10:37:15 2021 +0200
+
+    SRT requires word times
+
+[33mcommit 75bedfe06df51ab58e82c0d42676b8dbfc576177[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Jun 7 01:04:37 2021 +0200
+
+    Add a method to show/hide words and their times
+
+[33mcommit 4ea9885d44ca3ab96df969002e2e6b2c895c2183[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun May 30 21:59:46 2021 +0200
+
+    Bump version
+
+[33mcommit 0930def9ec7222e79325e256922a35d36823e5ae[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun May 30 21:58:06 2021 +0200
+
+    Fix critical accuracy issues, actually use rescoring
+
+[33mcommit 6aa5af7640fa95bb7fe75b322a5249ca065a1471[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed May 26 21:22:07 2021 +0200
+
+    Add reset test
+
+[33mcommit e74fe5edf70c3ec98a40c88d6e739d4b44aaaf95[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed May 26 21:01:27 2021 +0200
+
+    Reset reset flag
+
+[33mcommit cbb5d0fcdfc25202afb28320cd29e5c4e270ae4a[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed May 26 20:51:44 2021 +0200
+
+    Implement reset method in SpeechService
+
+[33mcommit d489bc40e42226bc9b9ef2935197a8e3f34ca1d8[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed May 26 00:59:08 2021 +0200
+
+    Update Java part too
+
+[33mcommit 499b2f183a1249895255cb7ddae57855b2dfd8d8[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed May 26 00:46:32 2021 +0200
+
+    Introduce new API to set speaker model to already initialized recognizer.
+    
+    Introduce a method to reset recognizer results to start from scratch without
+    computation of the result.
+
+[33mcommit f57b926f667131437e2bde73fe5f27aeeffd2d6a[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun May 23 01:29:29 2021 +0200
+
+    Unpack library, loading works on Windows
+
+[33mcommit 733dca5aea0faa3c625fc29276632cb502cc3125[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sat May 22 00:41:30 2021 +0200
+
+    Attempt to fix loading on Windows
+
+[33mcommit 1ab7e8ca877695529e9c38a825159cd1fc25adcf[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu May 20 20:48:21 2021 +0200
+
+    Use older API for backward compatibility
+
+[33mcommit 53426f794c22f4f8933fd8c1d812fc57d333537f[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu May 20 01:29:15 2021 +0200
+
+    Add note about Ukrainian
+
+[33mcommit f8189685e55d6b41612a1a16a17be65e5a5b449f[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed May 19 18:47:25 2021 +0200
+
+    Add max alternatives output
+
+[33mcommit e6bd200c856346ff745d77eafc75d63528398833[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu May 13 09:36:56 2021 +0200
+
+    Proper path delimiter on windows
+
+[33mcommit 4a4c33fd9d546a8932258cddfb6e1066969da33e[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon May 10 01:39:26 2021 +0200
+
+    Load dependent libraries
+
+[33mcommit dc44922b92e3ffc8f9c7757c0799eff241bb886d[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon May 10 01:26:05 2021 +0200
+
+    Add code to expand path
+
+[33mcommit 67896cfba7526adae97a05ef40d9bacfc232a11c[m[33m ([m[1;33mtag: 0.3.27[m[33m)[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed May 5 20:50:25 2021 +0200
+
+    Bump bindings versions
+
+[33mcommit ee8663e6d914816f8befb4f4c5abec08f693b2c0[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed May 5 19:34:30 2021 +0200
+
+    RNNLM rescoring support
+
+[33mcommit 652c05f0527eee68c79b11e92fb71fe2a74db1ad[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun May 2 21:44:54 2021 +0200
+
+    Reformat and simplify code a bit
+
+[33mcommit 193d129d9ee1b6c43697a7e1838cb912c25c8ecb[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Fri Apr 30 11:58:11 2021 +0200
+
+    Model can be a symlink
+
+[33mcommit e995df4bc332c1d89a54ca66cea221e00f676137[m
+Author: Sadra Sabouri <43045767+sadrasabouri@users.noreply.github.com>
+Date:   Fri Apr 30 11:46:36 2021 +0430
+
+    New Examples for Nodejs (Base on Python Examples) (#515)
+
+[33mcommit f6a30c3626cd2a7e06c6415b14f55ebf2f3fb3e9[m
+Author: Sergey Korol <serhii.s.korol@gmail.com>
+Date:   Thu Apr 29 20:57:56 2021 +0300
+
+    Added missing GPU methods to nuget package. (#514)
+
+[33mcommit ee95420f8fa67a93813c014303cd0887f5758fe5[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Apr 27 23:24:10 2021 +0200
+
+    Fix spk model initialization
+
+[33mcommit 2221cd02094ff2f64c1707713f6a9b203cf78a68[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Apr 26 23:25:05 2021 +0200
+
+    Reorganize methods a bit
+
+[33mcommit 8368d831aadac2813348f200bcf607d85e404dd3[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Apr 26 22:34:33 2021 +0200
+
+    Add async processing demo
+
+[33mcommit 91a128b3edf7e84d55649d8fa9a60664b5386292[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Apr 15 13:54:48 2021 +0200
+
+    Fix package name
+
+[33mcommit 83d8b63351a1abc758231955d362e2201a88158b[m
+Merge: 0881aa8 77abb02
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Apr 15 12:57:17 2021 +0200
+
+    Merge branch 'master' of github.com:alphacep/vosk-api
+
+[33mcommit 0881aa856f858339a826c24c491dc6d5d833f89b[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Apr 15 12:56:59 2021 +0200
+
+    Update for new API
+
+[33mcommit 77abb02ada00dd7b66c73b907ccf5bcfe8ce2089[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Apr 12 12:23:11 2021 +0200
+
+    Bump version
+
+[33mcommit 119c6cd0dc780ab8f96af0f8c8c199ce2029f7ab[m
+Author: François Billioud <darksharcoux@hotmail.com>
+Date:   Thu Apr 1 21:12:14 2021 +0200
+
+    Update ffi-napi and improve dependency to ref-napi (#483)
+    
+    With this change, we will use the same version of ref-napi than the one declared in ffi-napi, which reduce dependency tree, bundle size, risks of errors that could be fixed in one version and not in the other, etc
+
+[33mcommit cc649aa78e75724ce608a104e69cd4866cfa2dcb[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Apr 1 20:33:01 2021 +0200
+
+    Fixes demo
+
+[33mcommit 0b0c9fce0ee73b2354a013845e765e2f2c722049[m
+Author: François Billioud <darksharcoux@hotmail.com>
+Date:   Thu Apr 1 20:25:55 2021 +0200
+
+    Types for typescript projects, and jsDoc (#461)
+    
+    Implement Javascript API
+
+[33mcommit d845e2107f0e7843fdadb45450e23a579fe74933[m
+Author: Peter Kronenberg <pakronenberg@gmail.com>
+Date:   Wed Mar 31 11:55:45 2021 -0400
+
+    Allow libvosk.dll to get loaded on Windows (#478)
+    
+    * Allow libvosk.dll to get loaded on Windows
+    
+    Authored-by: Peter Kronenberg <peter.kronenberg@torch.ai>
+
+[33mcommit 69992a1b398f7a14851a183a9e74d5fce70f59ba[m
+Author: Nickolay V. Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Mar 30 23:36:26 2021 +0300
+
+    Android through JNA framework unified with Java (#476)
+    
+    * Move to JNA
+    
+    * Update for android
+    
+    * Joint publishing
+    
+    * Fix the developer id
+    
+    * Added grammar constructor for Java
+
+[33mcommit f351280f4984d4d7ca89330d6444e1c69840b3d2[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Mar 30 19:24:00 2021 +0200
+
+    Allow extra cflags
+
+[33mcommit c15065b044a6052f702eb1a3758ecf7087f9bcd0[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Mar 30 17:34:00 2021 +0200
+
+    Wrap short and float
+
+[33mcommit db41f16051bd1f5ed7d44b9a69280321c875da7c[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Mar 29 00:38:54 2021 +0200
+
+    Docs are on the separate project
+
+[33mcommit e276de61bef4c13ec7623ae641831dd4f870bc1a[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Mar 29 00:20:52 2021 +0200
+
+    Give jar a name and fix OSX library path
+
+[33mcommit 43c786ab186af72d393faec12728fa87317d3cdd[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Mar 28 23:38:43 2021 +0200
+
+    Move jars to our own maven and create a demo
+
+[33mcommit 1199f39d5586dba17238466495d1c933e927a5f8[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Mar 28 13:02:32 2021 +0200
+
+    Move project to a library
+
+[33mcommit 70aab8625768e672efe3e7c44a9e0b6469adf548[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Mar 28 10:11:53 2021 +0200
+
+    Remove test code
+
+[33mcommit e4b0af7a8e423dd4c6f3f553b7779f7bf42ebe4d[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sat Mar 27 23:40:02 2021 +0100
+
+    Update nuget package, add osx library
+
+[33mcommit a120d06f6b92ad41d0af8c2dc4ec437ad810281f[m
+Author: Martin Mende <martin.mende@aristech.de>
+Date:   Wed Mar 24 15:08:39 2021 +0100
+
+    Fixed nodejs platform check (#464)
+
+[33mcommit e01ca37e45386172ea2c1176d08f4bac777985c6[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Mar 18 00:19:24 2021 +0100
+
+    Add osx module
+
+[33mcommit f5c3d898e2c592a387440251ccc8e36973668a31[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Mar 18 02:10:56 2021 +0300
+
+    Option to compile on Mac
+
+[33mcommit a5a3697b7c79114384e47df8fd89010ad4277c41[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Mar 1 21:22:31 2021 +0100
+
+    Copy data before queue, original data can be destroyed.
+    
+    Fixes issue #444
+    
+    Thanks to Alexander Zatvornitsky
+
+[33mcommit 4be9874ba2d3a496136a03798fcd022fa1976498[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Sun Feb 28 22:40:40 2021 +0100
+
+    Reformat
+
+[33mcommit 5647a2dc6a44d5a3b2af91f1e467ffff2bdb9bcb[m
+Author: Peter Kronenberg <pakronenberg@gmail.com>
+Date:   Sun Feb 28 16:35:31 2021 -0500
+
+    Java example with better type safety, Java objects and support for au… (#429)
+    
+    Java example with better type safety, Java objects and support for autoclosable
+    
+    Authored-by: Peter Kronenberg <peter.kronenberg@torch.ai>
+
+[33mcommit a067a5b5f341c71e9ac16d2db1efc5799ec4308e[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Fri Feb 26 20:34:17 2021 +0100
+
+    Enable pitch if conf/pitch.conf is present
+    
+    Fixes issue #442
+
+[33mcommit 475b0ecfc14f33dca1ca8ef77de29e7608d32761[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Feb 25 19:17:13 2021 +0100
+
+    Free symbol table only if we loaded it
+
+[33mcommit 2a9a6051443270cfe9d5ac0a38f774b7bd0aa955[m
+Merge: 11c1661 eea7ca5
+Author: Nickolay V. Shmyrev <nshmyrev@gmail.com>
+Date:   Mon Feb 22 13:41:37 2021 +0300
+
+    Merge pull request #436 from sskorol/435-sync-master-with-gpu
+    
+    Sync master with GPU
+
+[33mcommit eea7ca571b6ed5b06a494e796086fe6daee972f7[m
+Author: sskorol <serhii.s.korol@gmail.com>
+Date:   Sun Feb 21 22:03:07 2021 +0200
+
+    - Added an optional HAVE_CUDA flag to build Vosk with GPU support.
+    - Added missing GpuInit/ThreadInit python wrappers.
+
+[33mcommit 11c16610ee97cfd5b9fee206c22b058ef73985b2[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Fri Feb 19 19:25:07 2021 +0100
+
+    Fix memory leaks for big models. Fixes issue #425.
+
+[33mcommit 2f4124eb663e39e6beeb8195b044862d2ab79aa5[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Feb 16 17:40:21 2021 +0100
+
+    Demonstrate speaker
+
+[33mcommit db3e31d7cedad9dfd98d2dccb806ed2f8c2b9592[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Feb 16 17:33:09 2021 +0100
+
+    Automatically put .so file in resources
+
+[33mcommit d917af21ab04f1f481623d545d389650daa58827[m[33m ([m[1;33mtag: 0.3.21[m[33m)[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Fri Feb 12 22:24:54 2021 +0100
+
+    Better search for Windows dlls
+
+[33mcommit 948c8c7cfd2111ee6f9d93bd95e38ce20e8387a0[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Fri Feb 12 10:13:50 2021 +0100
+
+    Update to 0.3.21
+
+[33mcommit dec8e1acf3fa60432eff3036221219b88a813c46[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Thu Feb 11 00:04:19 2021 +0100
+
+    Move to JNA instead of JNR-FFI for better Android compatibility
+
+[33mcommit 3c020526ced21c64b30be215c3bf2ff5d512e296[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed Feb 10 23:32:47 2021 +0100
+
+    No need for byte buffer
+
+[33mcommit b0da19b07f46aa55e3cdf656dc1651b6aefe389a[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Wed Feb 10 23:15:43 2021 +0100
+
+    Java API through JNR-FFI
+
+[33mcommit 70bcd9b018ac58c570a420b9e644d4628989fa43[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Feb 9 23:43:56 2021 +0100
+
+    Platform is hardcoded now
+
+[33mcommit d2604b609d271133d7e7ce5cd1c0350874106afa[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Feb 9 23:36:32 2021 +0100
+
+    Copy out lib files too
+
+[33mcommit e960e0cacff5ac40e9debf8a7245aed4c82d58bd[m
+Author: Nickolay Shmyrev <nshmyrev@gmail.com>
+Date:   Tue Feb 9 21:37:16 2021 +0100
+
+    Proper libraries and demo

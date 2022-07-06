@@ -336,6 +336,7 @@ void Model::ReadDataFiles()
         ReadConfigFromFile(rnnlm_config_rxfilename_, &rnnlm_compute_opts);
 
         rnnlm_enabled_ = true;
+
     }
 
 }

@@ -19,8 +19,12 @@
 #include "online2/online-feature-pipeline.h"
 #include "nnet3/nnet-utils.h"
 #include <atomic>
+#include "ivector/plda.h"
+#include "nnet3/am-nnet-simple.h"
+#include "nnet3/nnet-am-decodable-simple.h"
 
 using namespace kaldi;
+using namespace kaldi::nnet3;
 
 class Recognizer;
 
@@ -28,6 +32,8 @@ class SpkModel {
 
 public:
     SpkModel(const char *spk_path);
+	kaldi::Vector<BaseFloat> LoadXVector(std::string path, std::string key);
+	bool SaveXVector(kaldi::Vector<BaseFloat> xvector, std::string path, std::string key);
     void Ref();
     void Unref();
 
@@ -38,6 +44,8 @@ protected:
     kaldi::nnet3::Nnet speaker_nnet;
     kaldi::Vector<BaseFloat> mean;
     kaldi::Matrix<BaseFloat> transform;
+	Plda plda;
+	nnet3::CachingOptimizingCompiler *compiler;
 
     MfccOptions spkvector_mfcc_opts;
 

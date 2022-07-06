@@ -24,11 +24,35 @@ SpkModel::SpkModel(const char *speaker_path) {
     SetBatchnormTestMode(true, &speaker_nnet);
     SetDropoutTestMode(true, &speaker_nnet);
     CollapseModel(nnet3::CollapseModelConfig(), &speaker_nnet);
+	//this speeds up multiple consequent xvector computations
+	NnetSimpleComputationOptions opts;
+	nnet3::CachingOptimizingCompilerOptions compiler_config;
+	compiler  = new nnet3::CachingOptimizingCompiler (speaker_nnet, opts.optimize_config, compiler_config);
 
     ReadKaldiObject(speaker_path_str + "/mean.vec", &mean);
     ReadKaldiObject(speaker_path_str + "/transform.mat", &transform);
+	ReadKaldiObject(speaker_path_str + "/plda", &plda);
 
     ref_cnt_ = 1;
+}
+
+kaldi::Vector<BaseFloat> SpkModel::LoadXVector(std::string path, std::string key)
+{
+	Vector<BaseFloat> ivector;
+	SequentialBaseFloatVectorReader train_ivector_reader(path);
+	for (; !train_ivector_reader.Done(); train_ivector_reader.Next()) {
+		std::string spk = train_ivector_reader.Key();
+		ivector = train_ivector_reader.Value();
+	}
+	return ivector;
+}
+
+bool SpkModel::SaveXVector(kaldi::Vector<BaseFloat> xvector, std::string path, std::string key)
+{
+	BaseFloatVectorWriter vector_writer(path);
+
+	vector_writer.Write(key, xvector);
+	return true;
 }
 
 void SpkModel::Ref()
@@ -40,6 +64,7 @@ void SpkModel::Unref()
 {
     if (std::atomic_fetch_sub_explicit(&ref_cnt_, 1, std::memory_order_release) == 1) {
          std::atomic_thread_fence(std::memory_order_acquire);
-         delete this;
+         delete compiler;
+		 delete this;
     }
 }

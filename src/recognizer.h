@@ -27,6 +27,8 @@
 #include "nnet3/am-nnet-simple.h"
 #include "nnet3/nnet-am-decodable-simple.h"
 #include "nnet3/nnet-utils.h"
+#include "online/online-audio-source.h"
+#include "online2/online-endpoint.h"
 
 #include "model.h"
 #include "spk_model.h"
@@ -45,6 +47,8 @@ class Recognizer {
         Recognizer(Model *model, float sample_frequency);
         Recognizer(Model *model, float sample_frequency, SpkModel *spk_model);
         Recognizer(Model *model, float sample_frequency, char const *grammar);
+		Recognizer(SpkModel *spk_model);
+		Recognizer(SpkModel *spk_model, bool need_mic);
         ~Recognizer();
         void SetMaxAlternatives(int max_alternatives);
         void SetSpkModel(SpkModel *spk_model);
@@ -57,6 +61,15 @@ class Recognizer {
         const char* Result();
         const char* FinalResult();
         const char* PartialResult();
+		Vector<BaseFloat> GetXVector();
+		Vector<BaseFloat> GetXVectorMic(float rec_len);
+		const char *GetSpksList(const char* path);
+		bool DeleteSpeaker(const char* path, const char* user_id);
+		const char *GetIdentityMic(const char* path, float rec_len, float& top_score);
+		BaseFloat Plda2Score(Vector<BaseFloat> train, Vector<BaseFloat> test);
+		bool PldaTrials(const char *ark_path, const char *trials_path, const char *out_path);
+		bool GetEer(const char *scores_rxfilename);
+		BaseFloat Cos2Score(Vector<BaseFloat> train, Vector<BaseFloat> test, bool norm);
         void Reset();
 
     private:
@@ -66,9 +79,13 @@ class Recognizer {
         void UpdateSilenceWeights();
         bool AcceptWaveform(Vector<BaseFloat> &wdata);
         bool GetSpkVector(Vector<BaseFloat> &out_xvector, int *frames);
+		bool GetSpkVectorVad(Vector<BaseFloat> &out_xvector, int *frames);
+		bool GetSpkVectorVadMic(Vector<BaseFloat> &out_xvector, int *frames, float rec_len);
+		
         const char *GetResult();
         const char *StoreEmptyReturn();
         const char *StoreReturn(const string &res);
+		const char *XvectorResult();
         const char *MbrResult(CompactLattice &clat);
         const char *NbestResult(CompactLattice &clat);
         const char *NlsmlResult(CompactLattice &clat);
@@ -83,6 +100,10 @@ class Recognizer {
         // Speaker identification
         SpkModel *spk_model_ = nullptr;
         OnlineBaseFeature *spk_feature_ = nullptr;
+
+		// Mic
+		OnlinePaSource *au_src_ = nullptr;
+		char* out_str_ = nullptr;
 
         // Rescoring
         fst::ArcMapFst<fst::StdArc, LatticeArc, fst::StdToLatticeMapper<BaseFloat> > *lm_to_subtract_ = nullptr;
