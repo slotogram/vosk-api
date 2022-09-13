@@ -57,6 +57,7 @@ class Recognizer {
         const char* Result();
         const char* FinalResult();
         const char* PartialResult();
+	const char* Dir(const char *param_path);
         void Reset();
 
     private:
@@ -64,14 +65,17 @@ class Recognizer {
         void InitRescoring();
         void CleanUp();
         void UpdateSilenceWeights();
+        void Wav_In(const char *wav_path);
         bool AcceptWaveform(Vector<BaseFloat> &wdata);
         bool GetSpkVector(Vector<BaseFloat> &out_xvector, int *frames);
+//        bool Compressed_In(const char *filename);
         const char *GetResult();
         const char *StoreEmptyReturn();
         const char *StoreReturn(const string &res);
         const char *MbrResult(CompactLattice &clat);
         const char *NbestResult(CompactLattice &clat);
         const char *NlsmlResult(CompactLattice &clat);
+
 
         Model *model_ = nullptr;
         SingleUtteranceNnet3IncrementalDecoder *decoder_ = nullptr;

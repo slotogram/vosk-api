@@ -163,6 +163,14 @@ const char *vosk_recognizer_final_result(VoskRecognizer *recognizer)
     return ((Recognizer *)recognizer)->FinalResult();
 }
 
+
+
+const char *vosk_recognizer_dir(VoskRecognizer *recognizer, const char *param_path)
+{
+    return ((Recognizer *)recognizer)->Dir(param_path);
+}
+
+
 void vosk_recognizer_reset(VoskRecognizer *recognizer)
 {
     ((Recognizer *)recognizer)->Reset();
