@@ -22,8 +22,37 @@
 #include <dirent.h>
 #include <chrono>
 #include <thread>
-//#include "ffmpeg_lib.h"
+#include "ffmpeg_lib.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    #include <libavformat/avformat.h>
+    #include <libavcodec/avcodec.h>
+
+#ifdef __cplusplus
+}
+#endif
+
+#include <stdio.h>
+
+#ifndef __cplusplus
+    typedef uint8_t bool;
+    #define true 1
+    #define false 0
+#endif
+
+#ifdef __cplusplus
+    #define REINTERPRET_CAST(type, variable) reinterpret_cast<type>(variable)
+    #define STATIC_CAST(type, variable) static_cast<type>(variable)
+#else
+    #define C_CAST(type, variable) ((type)variable)
+    #define REINTERPRET_CAST(type, variable) C_CAST(type, variable)
+    #define STATIC_CAST(type, variable) C_CAST(type, variable)
+#endif
+
+#define RAW_OUT_ON_PLANAR true
 
 using namespace fst;
 using namespace kaldi::nnet3;
@@ -865,6 +894,151 @@ void Recognizer::Wav_In(const char *wav_path)
          final = AcceptWaveform(buf, nread);
     }
 }
+
+bool Recognizer::Compressed_In(const char *filename)
+{
+    FILE* outFile;
+    // Open the outfile called "<infile>.raw".
+    char* outFilename = REINTERPRET_CAST(char*, malloc(strlen(filename)+5));
+    strcpy(outFilename, filename);
+    strcpy(outFilename+strlen(filename), ".raw");
+    outFile = fopen(outFilename, "w+");
+    if(outFile == NULL) {
+        fprintf(stderr, "Unable to open output file \"%s\".\n", outFilename);
+    }
+    free(outFilename);
+
+    // Initialize the libavformat. This registers all muxers, demuxers and protocols.
+    av_register_all();
+
+    int err = 0;
+    AVFormatContext *formatCtx = NULL;
+    // Open the file and read the header.
+    if ((err = avformat_open_input(&formatCtx, filename, NULL, 0)) != 0) {
+        return printError("Error opening file.", err);
+    }
+
+    // In case the file had no header, read some frames and find out which format and codecs are used.
+    // This does not consume any data. Any read packets are buffered for later use.
+    avformat_find_stream_info(formatCtx, NULL);
+
+    // Try to find an audio stream.
+    int audioStreamIndex = findAudioStream(formatCtx);
+    if(audioStreamIndex == -1) {
+        // No audio stream was found.
+        fprintf(stderr, "None of the available %d streams are audio streams.\n", formatCtx->nb_streams);
+        avformat_close_input(&formatCtx);
+        return -1;
+    }
+
+    // Find the correct decoder for the codec.
+    AVCodec* codec = avcodec_find_decoder(formatCtx->streams[audioStreamIndex]->codecpar->codec_id);
+    if (codec == NULL) {
+        // Decoder not found.
+        fprintf(stderr, "Decoder not found. The codec is not supported.\n");
+        avformat_close_input(&formatCtx);
+        return -1;
+    }
+
+    // Initialize codec context for the decoder.
+    AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
+    if (codecCtx == NULL) {
+        // Something went wrong. Cleaning up...
+        avformat_close_input(&formatCtx);
+        fprintf(stderr, "Could not allocate a decoding context.\n");
+        return -1;
+    }
+
+    // Fill the codecCtx with the parameters of the codec used in the read file.
+    if ((err = avcodec_parameters_to_context(codecCtx, formatCtx->streams[audioStreamIndex]->codecpar)) != 0) {
+        // Something went wrong. Cleaning up...
+        avcodec_close(codecCtx);
+        avcodec_free_context(&codecCtx);
+        avformat_close_input(&formatCtx);
+        return printError("Error setting codec context parameters.", err);
+    }
+
+    // Explicitly request non planar data.
+    codecCtx->request_sample_fmt = av_get_alt_sample_fmt(codecCtx->sample_fmt, 0);
+
+    // Initialize the decoder.
+    if ((err = avcodec_open2(codecCtx, codec, NULL)) != 0) {
+        avcodec_close(codecCtx);
+        avcodec_free_context(&codecCtx);
+        avformat_close_input(&formatCtx);
+        return -1;
+    }
+
+    // Print some intersting file information.
+    printStreamInformation(codec, codecCtx, audioStreamIndex);
+
+    AVFrame* frame = NULL;
+    if ((frame = av_frame_alloc()) == NULL) {
+        avcodec_close(codecCtx);
+        avcodec_free_context(&codecCtx);
+        avformat_close_input(&formatCtx);
+        return -1;
+    }
+
+    // Prepare the packet.
+    AVPacket packet;
+    // Set default values.
+    av_init_packet(&packet);
+
+    while ((err = av_read_frame(formatCtx, &packet)) != AVERROR_EOF) {
+        if(err != 0) {
+            // Something went wrong.
+            printError("Read error.", err);
+            break; // Don't return, so we can clean up nicely.
+        }
+        // Does the packet belong to the correct stream?
+        if(packet.stream_index != audioStreamIndex) {
+            // Free the buffers used by the frame and reset all fields.
+            av_packet_unref(&packet);
+            continue;
+        }
+        // We have a valid packet => send it to the decoder.
+        if((err = avcodec_send_packet(codecCtx, &packet)) == 0) {
+            // The packet was sent successfully. We don't need it anymore.
+            // => Free the buffers used by the frame and reset all fields.
+            av_packet_unref(&packet);
+        } else {
+            // Something went wrong.
+            // EAGAIN is technically no error here but if it occurs we would need to buffer
+            // the packet and send it again after receiving more frames. Thus we handle it as an error here.
+            printError("Send error.", err);
+            break; // Don't return, so we can clean up nicely.
+        }
+
+        // Receive and handle frames.
+        // EAGAIN means we need to send before receiving again. So thats not an error.
+        if((err = receiveAndHandle(codecCtx, frame)) != AVERROR(EAGAIN)) {
+            // Not EAGAIN => Something went wrong.
+            printError("Receive error.", err);
+            break; // Don't return, so we can clean up nicely.
+        }
+    }
+
+    // Drain the decoder.
+    drainDecoder(codecCtx, frame);
+
+    // Free all data used by the frame.
+    av_frame_free(&frame);
+
+    // Close the context and free all data associated to it, but not the context itself.
+    avcodec_close(codecCtx);
+
+    // Free the context itself.
+    avcodec_free_context(&codecCtx);
+
+    // We are done here. Close the input.
+    avformat_close_input(&formatCtx);
+
+    // Close the outfile.
+    fclose(outFile);
+    return 1;
+}
+
 
 
 const char* Recognizer::Dir(const char *param_path)

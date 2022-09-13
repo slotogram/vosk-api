@@ -66,6 +66,7 @@ class Recognizer {
         void CleanUp();
         void UpdateSilenceWeights();
         void Wav_In(const char *wav_path);
+        bool Compressed_In(const char *filename);
         bool AcceptWaveform(Vector<BaseFloat> &wdata);
         bool GetSpkVector(Vector<BaseFloat> &out_xvector, int *frames);
 //        bool Compressed_In(const char *filename);

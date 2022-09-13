@@ -14,8 +14,8 @@ HAVE_CUDA?=0
 CXX?=g++
 EXT?=so
 # Extra -I$(FF_ROOT) 
-EXTRA_CFLAGS?=$(pkg-config --cflags --libs libavformat libavcodec libavutil)
-EXTRA_LDFLAGS?=
+EXTRA_CFLAGS?=-m64
+EXTRA_LDFLAGS?=-Wl,-Bsymbolic
 OUTDIR?=.
 
 VOSK_SOURCES= \
@@ -34,7 +34,7 @@ VOSK_HEADERS= \
 	ffmpeg_lib.h
 # -I$(FF_ROOT) -I$(FF_ROOT)/libavcodec -I$(FF_ROOT)/libavformat -I$(FF_ROOT)/libavutil 
 CFLAGS=-g -O3 -std=c++17 -Wno-deprecated-declarations -fPIC -DFST_NO_DYNAMIC_LINKING \
-       -I. -I$(KALDI_ROOT)/src -I$(OPENFST_ROOT)/include -I$(FF_ROOT) $(EXTRA_CFLAGS)
+       -I. -I$(KALDI_ROOT)/src -I$(OPENFST_ROOT)/include -I$(FF_ROOT) -L$(FF_ROOT)/libavcodec -L$(FF_ROOT)/libavformat -L$(FF_ROOT)/libavutil $(EXTRA_CFLAGS)
 
 LDFLAGS=
 
@@ -58,7 +58,10 @@ ifeq ($(USE_SHARED), 0)
         $(KALDI_ROOT)/src/util/kaldi-util.a \
         $(KALDI_ROOT)/src/base/kaldi-base.a \
         $(OPENFST_ROOT)/lib/libfst.a \
-        $(OPENFST_ROOT)/lib/libfstngram.a
+        $(OPENFST_ROOT)/lib/libfstngram.a \
+        $(FF_ROOT)/libavcodec/libavcodec.a \
+        $(FF_ROOT)/libavformat/libavformat.a \
+        $(FF_ROOT)/libavutil/libavutil.a
 
 else
     LDFLAGS += \
@@ -66,9 +69,9 @@ else
         -lkaldi-online2 -lkaldi-decoder -lkaldi-ivector -lkaldi-gmm -lkaldi-tree \
         -lkaldi-feat -lkaldi-lat -lkaldi-lm -lkaldi-rnnlm -lkaldi-hmm -lkaldi-nnet3 \
         -lkaldi-transform -lkaldi-cudamatrix -lkaldi-matrix -lkaldi-fstext \
-        -lkaldi-util -lkaldi-base -lfst -lfstngram
+        -lkaldi-util -lkaldi-base -lfst -lfstngram -lm -lavformat -lavcodec -lavutil
 endif
-
+LD_FLAGS += -lm $(pkg-config --libs libavformat libavcodec libavutil)
 ifeq ($(HAVE_OPENBLAS_CLAPACK), 1)
     CFLAGS += -I$(OPENBLAS_ROOT)/include
     ifeq ($(USE_SHARED), 0)
