@@ -12,12 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef VOSK_FFMPEG_LIB_H
+#define VOSK_FFMPEG_LIB_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    #include <libavformat/avformat.h>
-    #include <libavcodec/avcodec.h>
+#include "libavformat/avformat.h"
+#include "libavformat/avio.h"
+
+#include "libavcodec/avcodec.h"
+
+#include "libavutil/audio_fifo.h"
+#include "libavutil/avassert.h"
+#include "libavutil/avstring.h"
+#include "libavutil/channel_layout.h"
+#include "libavutil/frame.h"
+#include "libavutil/opt.h"
+
+#include "libswresample/swresample.h"
 
 #ifdef __cplusplus
 }
@@ -40,97 +54,255 @@ extern "C" {
     #define STATIC_CAST(type, variable) C_CAST(type, variable)
 #endif
 
-FILE* outFile;
-// #define RAW_OUT_ON_PLANAR false
+#ifdef av_err2str
+#undef av_err2str
+#include <string>
+av_always_inline std::string av_err2string(int errnum) {
+    char str[AV_ERROR_MAX_STRING_SIZE];
+    return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
+}
+#define av_err2str(err) av_err2string(err).c_str()
+#endif  // av_err2str
+
 #define RAW_OUT_ON_PLANAR true
+/* The output bit rate in bit/s */
+#define OUTPUT_BIT_RATE 96000
+/* The number of output channels */
+#define OUTPUT_CHANNELS 1
+
+/**
+ * Open an input file and the required decoder.
+ * @param      filename             File to be opened
+ * @param[out] input_format_context Format context of opened file
+ * @param[out] input_codec_context  Codec context of opened file
+ * @return Error code (0 if successful)
+ */
+int open_input_file(const char *filename,
+                           AVFormatContext **input_format_context,
+                           AVCodecContext **input_codec_context);
+
+/**
+ * Open an output file and the required encoder.
+ * Also set some basic encoder parameters.
+ * Some of these parameters are based on the input file's parameters.
+ * @param      filename              File to be opened
+ * @param      input_codec_context   Codec context of input file
+ * @param[out] output_format_context Format context of output file
+ * @param[out] output_codec_context  Codec context of output file
+ * @return Error code (0 if successful)
+ */
+int open_output_file(const char *filename, const float sample_frequency,
+                            AVCodecContext *input_codec_context,
+                            AVFormatContext **output_format_context,
+                            AVCodecContext **output_codec_context);
+
+/**
+ * Open an output context and the required encoder without saving to file.
+ * Also set some basic encoder parameters.
+ * @param      input_codec_context   Codec context of input file
+ * @param[out] output_format_context Format context of output file
+ * @param[out] output_codec_context  Codec context of output file
+ * @return Error code (0 if successful)
+ */
+int open_output_context(const float sample_frequency,
+                            AVCodecContext *input_codec_context,
+                            AVCodecContext **output_codec_context);
+
+
+/**
+ * Initialize one data packet for reading or writing.
+ * @param[out] packet Packet to be initialized
+ * @return Error code (0 if successful)
+ */
+int init_packet(AVPacket **packet);
+
+
+/**
+ * Initialize one audio frame for reading from the input file.
+ * @param[out] frame Frame to be initialized
+ * @return Error code (0 if successful)
+ */
+int init_input_frame(AVFrame **frame);
+
+
+/**
+ * Initialize the audio resampler based on the input and output codec settings.
+ * If the input and output sample formats differ, a conversion is required
+ * libswresample takes care of this, but requires initialization.
+ * @param      input_codec_context  Codec context of the input file
+ * @param      output_codec_context Codec context of the output file
+ * @param[out] resample_context     Resample context for the required conversion
+ * @return Error code (0 if successful)
+ */
+int init_resampler(AVCodecContext *input_codec_context,
+                          AVCodecContext *output_codec_context,
+                          SwrContext **resample_context);
+
+/**
+ * Initialize a FIFO buffer for the audio samples to be encoded.
+ * @param[out] fifo                 Sample buffer
+ * @param      output_codec_context Codec context of the output file
+ * @return Error code (0 if successful)
+ */
+int init_fifo(AVAudioFifo **fifo, AVCodecContext *output_codec_context);
+
+/**
+ * Write the header of the output file container.
+ * @param output_format_context Format context of the output file
+ * @return Error code (0 if successful)
+ */
+int write_output_file_header(AVFormatContext *output_format_context);
+
+
+/**
+ * Decode one audio frame from the input file.
+ * @param      frame                Audio frame to be decoded
+ * @param      input_format_context Format context of the input file
+ * @param      input_codec_context  Codec context of the input file
+ * @param[out] data_present         Indicates whether data has been decoded
+ * @param[out] finished             Indicates whether the end of file has
+ *                                  been reached and all data has been
+ *                                  decoded. If this flag is false, there
+ *                                  is more data to be decoded, i.e., this
+ *                                  function has to be called again.
+ * @return Error code (0 if successful)
+ */
+int decode_audio_frame(AVFrame *frame,
+                              AVFormatContext *input_format_context,
+                              AVCodecContext *input_codec_context,
+                              int *data_present, int *finished);
+
+
+/**
+ * Initialize a temporary storage for the specified number of audio samples.
+ * The conversion requires temporary storage due to the different format.
+ * The number of audio samples to be allocated is specified in frame_size.
+ * @param[out] converted_input_samples Array of converted samples. The
+ *                                     dimensions are reference, channel
+ *                                     (for multi-channel audio), sample.
+ * @param      output_codec_context    Codec context of the output file
+ * @param      frame_size              Number of samples to be converted in
+ *                                     each round
+ * @return Error code (0 if successful)
+ */
+int init_converted_samples(uint8_t ***converted_input_samples,
+                                  AVCodecContext *output_codec_context,
+                                  int frame_size);
+
+/**
+ * Convert the input audio samples into the output sample format.
+ * The conversion happens on a per-frame basis, the size of which is
+ * specified by frame_size.
+ * @param      input_data       Samples to be decoded. The dimensions are
+ *                              channel (for multi-channel audio), sample.
+ * @param[out] converted_data   Converted samples. The dimensions are channel
+ *                              (for multi-channel audio), sample.
+ * @param      frame_size       Number of samples to be converted
+ * @param      resample_context Resample context for the conversion
+ * @return Error code (0 if successful)
+ */
+int convert_samples(const uint8_t **input_data,
+                           uint8_t **converted_data, const int frame_size, const int out_frame_size, 
+                           SwrContext *resample_context);
+
+/**
+ * Add converted input audio samples to the FIFO buffer for later processing.
+ * @param fifo                    Buffer to add the samples to
+ * @param converted_input_samples Samples to be added. The dimensions are channel
+ *                                (for multi-channel audio), sample.
+ * @param frame_size              Number of samples to be converted
+ * @return Error code (0 if successful)
+ */
+int add_samples_to_fifo(AVAudioFifo *fifo,
+                               uint8_t **converted_input_samples,
+                               const int frame_size);
+
+/**
+ * Read one audio frame from the input file, decode, convert and store
+ * it in the FIFO buffer.
+ * @param      fifo                 Buffer used for temporary storage
+ * @param      input_format_context Format context of the input file
+ * @param      input_codec_context  Codec context of the input file
+ * @param      output_codec_context Codec context of the output file
+ * @param      resampler_context    Resample context for the conversion
+ * @param[out] finished             Indicates whether the end of file has
+ *                                  been reached and all data has been
+ *                                  decoded. If this flag is false,
+ *                                  there is more data to be decoded,
+ *                                  i.e., this function has to be called
+ *                                  again.
+ * @return Error code (0 if successful)
+ */
+int read_decode_convert_and_store(AVAudioFifo *fifo,
+                                         AVFormatContext *input_format_context,
+                                         AVCodecContext *input_codec_context,
+                                         AVCodecContext *output_codec_context,
+                                         SwrContext *resampler_context,
+                                         int *finished);
+
+
+/**
+ * Initialize one input frame for writing to the output file.
+ * The frame will be exactly frame_size samples large.
+ * @param[out] frame                Frame to be initialized
+ * @param      output_codec_context Codec context of the output file
+ * @param      frame_size           Size of the frame
+ * @return Error code (0 if successful)
+ */
+int init_output_frame(AVFrame **frame,
+                             AVCodecContext *output_codec_context,
+                             int frame_size);
+
+/* Global timestamp for the audio frames. */
+static int64_t pts = 0;
+
+/**
+ * Encode one frame worth of audio to the output file.
+ * @param      frame                 Samples to be encoded
+ * @param      output_format_context Format context of the output file
+ * @param      output_codec_context  Codec context of the output file
+ * @param[out] data_present          Indicates whether data has been
+ *                                   encoded
+ * @return Error code (0 if successful)
+ */
+int encode_audio_frame(AVFrame *frame,
+                              AVFormatContext *output_format_context,
+                              AVCodecContext *output_codec_context,
+                              int *data_present);
+
+/**
+ * Load one audio frame from the FIFO buffer, encode and write it to the
+ * output file.
+ * @param fifo                  Buffer used for temporary storage
+ * @param output_format_context Format context of the output file
+ * @param output_codec_context  Codec context of the output file
+ * @return Error code (0 if successful)
+ */
+int load_encode_and_write(AVAudioFifo *fifo,
+                                 AVFormatContext *output_format_context,
+                                 AVCodecContext *output_codec_context);
+
+/**
+ * Write the trailer of the output file container.
+ * @param output_format_context Format context of the output file
+ * @return Error code (0 if successful)
+ */
+int write_output_file_trailer(AVFormatContext *output_format_context);
+
 
 /**
  * Print an error string describing the errorCode to stderr.
  */
-int printError(const char* prefix, int errorCode) {
-    if(errorCode == 0) {
-        return 0;
-    } else {
-        const size_t bufsize = 64;
-        char buf[bufsize];
-
-        if(av_strerror(errorCode, buf, bufsize) != 0) {
-            strcpy(buf, "UNKNOWN_ERROR");
-        }
-        fprintf(stderr, "%s (%d: %s)\n", prefix, errorCode, buf);
-
-        return errorCode;
-    }
-}
+int printError(const char* prefix, int errorCode); 
 
 /**
  * Extract a single sample and convert to float.
  */
-float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex) {
-    int64_t val = 0;
-    float ret = 0;
-    int sampleSize = av_get_bytes_per_sample(codecCtx->sample_fmt);
-    switch(sampleSize) {
-        case 1:
-            // 8bit samples are always unsigned
-            val = REINTERPRET_CAST(uint8_t*, buffer)[sampleIndex];
-            // make signed
-            val -= 127;
-            break;
-
-        case 2:
-            val = REINTERPRET_CAST(int16_t*, buffer)[sampleIndex];
-            break;
-
-        case 4:
-            val = REINTERPRET_CAST(int32_t*, buffer)[sampleIndex];
-            break;
-
-        case 8:
-            val = REINTERPRET_CAST(int64_t*, buffer)[sampleIndex];
-            break;
-
-        default:
-            fprintf(stderr, "Invalid sample size %d.\n", sampleSize);
-            return 0;
-    }
-
-    // Check which data type is in the sample.
-    switch(codecCtx->sample_fmt) {
-        case AV_SAMPLE_FMT_U8:
-        case AV_SAMPLE_FMT_S16:
-        case AV_SAMPLE_FMT_S32:
-        case AV_SAMPLE_FMT_U8P:
-        case AV_SAMPLE_FMT_S16P:
-        case AV_SAMPLE_FMT_S32P:
-            // integer => Scale to [-1, 1] and convert to float.
-            ret = val / STATIC_CAST(float, ((1 << (sampleSize*8-1))-1));
-            break;
-
-        case AV_SAMPLE_FMT_FLT:
-        case AV_SAMPLE_FMT_FLTP:
-            // float => reinterpret
-            ret = *REINTERPRET_CAST(float*, &val);
-            break;
-
-        case AV_SAMPLE_FMT_DBL:
-        case AV_SAMPLE_FMT_DBLP:
-            // double => reinterpret and then static cast down
-            ret = STATIC_CAST(float, *REINTERPRET_CAST(double*, &val));
-            break;
-
-        default:
-            fprintf(stderr, "Invalid sample format %s.\n", av_get_sample_fmt_name(codecCtx->sample_fmt));
-            return 0;
-    }
-
-    return ret;
-}
-
+float getSample(const AVCodecContext* codecCtx, uint8_t* buffer, int sampleIndex); 
 /**
  * Write the frame to an output file.
  */
-void handleFrame(const AVCodecContext* codecCtx, const AVFrame* frame) {
+/*void handleFrame(const AVCodecContext* codecCtx, const AVFrame* frame) {
     if(av_sample_fmt_is_planar(codecCtx->sample_fmt) == 1) {
         // This means that the data of each channel is in its own buffer.
         // => frame->extended_data[i] contains data for the i-th channel.
@@ -154,12 +326,12 @@ void handleFrame(const AVCodecContext* codecCtx, const AVFrame* frame) {
             }
         }
     }
-}
+}*/
 
 /**
  * Find the first audio stream and returns its index. If there is no audio stream returns -1.
  */
-int findAudioStream(const AVFormatContext* formatCtx) {
+/*int findAudioStream(const AVFormatContext* formatCtx) {
     int audioStreamIndex = -1;
     for(size_t i = 0; i < formatCtx->nb_streams; ++i) {
         // Use the first audio stream we can find.
@@ -170,36 +342,16 @@ int findAudioStream(const AVFormatContext* formatCtx) {
         }
     }
     return audioStreamIndex;
-}
+}*/
 
 /*
  * Print information about the input file and the used codec.
  */
-void printStreamInformation(const AVCodec* codec, const AVCodecContext* codecCtx, int audioStreamIndex) {
-    fprintf(stderr, "Codec: %s\n", codec->long_name);
-    if(codec->sample_fmts != NULL) {
-        fprintf(stderr, "Supported sample formats: ");
-        for(int i = 0; codec->sample_fmts[i] != -1; ++i) {
-            fprintf(stderr, "%s", av_get_sample_fmt_name(codec->sample_fmts[i]));
-            if(codec->sample_fmts[i+1] != -1) {
-                fprintf(stderr, ", ");
-            }
-        }
-        fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "---------\n");
-    fprintf(stderr, "Stream:        %7d\n", audioStreamIndex);
-    fprintf(stderr, "Sample Format: %7s\n", av_get_sample_fmt_name(codecCtx->sample_fmt));
-    fprintf(stderr, "Sample Rate:   %7d\n", codecCtx->sample_rate);
-    fprintf(stderr, "Sample Size:   %7d\n", av_get_bytes_per_sample(codecCtx->sample_fmt));
-    fprintf(stderr, "Channels:      %7d\n", codecCtx->channels);
-    fprintf(stderr, "Planar:        %7d\n", av_sample_fmt_is_planar(codecCtx->sample_fmt));
-    fprintf(stderr, "Float Output:  %7s\n", !RAW_OUT_ON_PLANAR || av_sample_fmt_is_planar(codecCtx->sample_fmt) ? "yes" : "no");
-}
-
+void printStreamInformation(const AVCodec* codec, const AVCodecContext* codecCtx, int audioStreamIndex); 
 /**
  * Receive as many frames as available and handle them.
  */
+/*
 int receiveAndHandle(AVCodecContext* codecCtx, AVFrame* frame) {
     int err = 0;
     // Read the packets from the decoder.
@@ -216,6 +368,7 @@ int receiveAndHandle(AVCodecContext* codecCtx, AVFrame* frame) {
 /*
  * Drain any buffered frames.
  */
+/*
 void drainDecoder(AVCodecContext* codecCtx, AVFrame* frame) {
     int err = 0;
     // Some codecs may buffer frames. Sending NULL activates drain-mode.
@@ -231,3 +384,6 @@ void drainDecoder(AVCodecContext* codecCtx, AVFrame* frame) {
         printError("Send error.", err);
     }
 }
+*/
+
+#endif /* VOSK_FFMPEG_LIB_H */

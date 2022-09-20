@@ -14,8 +14,10 @@ HAVE_CUDA?=0
 CXX?=g++
 EXT?=so
 # Extra -I$(FF_ROOT) 
-EXTRA_CFLAGS?=-m64
-EXTRA_LDFLAGS?=-Wl,-Bsymbolic
+#EXTRA_CFLAGS?=-m64
+EXTRA_CFLAGS?=
+#EXTRA_LDFLAGS?=-Wl,-Bsymbolic -lm -llog  -lm -lz
+EXTRA_LDFLAGS?=-Wl,-Bsymbolic -lz
 OUTDIR?=.
 
 VOSK_SOURCES= \
@@ -23,7 +25,8 @@ VOSK_SOURCES= \
 	language_model.cc \
 	model.cc \
 	spk_model.cc \
-	vosk_api.cc
+	vosk_api.cc \
+	ffmpeg_lib.cc
 
 VOSK_HEADERS= \
 	recognizer.h \
@@ -34,8 +37,9 @@ VOSK_HEADERS= \
 	ffmpeg_lib.h
 # -I$(FF_ROOT) -I$(FF_ROOT)/libavcodec -I$(FF_ROOT)/libavformat -I$(FF_ROOT)/libavutil 
 CFLAGS=-g -O3 -std=c++17 -Wno-deprecated-declarations -fPIC -DFST_NO_DYNAMIC_LINKING \
-       -I. -I$(KALDI_ROOT)/src -I$(OPENFST_ROOT)/include -I$(FF_ROOT) -L$(FF_ROOT)/libavcodec -L$(FF_ROOT)/libavformat -L$(FF_ROOT)/libavutil $(EXTRA_CFLAGS)
-
+       -I. -I$(KALDI_ROOT)/src -I$(OPENFST_ROOT)/include -I$(FF_ROOT) -L$(FF_ROOT)/libavcodec -L$(FF_ROOT)/libavformat -L$(FF_ROOT)/libavutil -L$(FF_ROOT)/libswresample -L$(FF_ROOT)/libavdevice \
+       -L$(FF_ROOT)/libavfilter -L$(FF_ROOT)/libswscale $(EXTRA_CFLAGS)
+#libavfilter libpostproc libswscale
 LDFLAGS=
 
 ifeq ($(USE_SHARED), 0)
@@ -59,9 +63,14 @@ ifeq ($(USE_SHARED), 0)
         $(KALDI_ROOT)/src/base/kaldi-base.a \
         $(OPENFST_ROOT)/lib/libfst.a \
         $(OPENFST_ROOT)/lib/libfstngram.a \
-        $(FF_ROOT)/libavcodec/libavcodec.a \
         $(FF_ROOT)/libavformat/libavformat.a \
-        $(FF_ROOT)/libavutil/libavutil.a
+        $(FF_ROOT)/libavcodec/libavcodec.a \
+        $(FF_ROOT)/libavdevice/libavdevice.a \
+        $(FF_ROOT)/libavfilter/libavfilter.a \
+        $(FF_ROOT)/libavutil/libavutil.a \
+        $(FF_ROOT)/libswscale/libswscale.a \
+        $(FF_ROOT)/libswresample/libswresample.a
+
 
 else
     LDFLAGS += \
@@ -69,9 +78,9 @@ else
         -lkaldi-online2 -lkaldi-decoder -lkaldi-ivector -lkaldi-gmm -lkaldi-tree \
         -lkaldi-feat -lkaldi-lat -lkaldi-lm -lkaldi-rnnlm -lkaldi-hmm -lkaldi-nnet3 \
         -lkaldi-transform -lkaldi-cudamatrix -lkaldi-matrix -lkaldi-fstext \
-        -lkaldi-util -lkaldi-base -lfst -lfstngram -lm -lavformat -lavcodec -lavutil
+        -lkaldi-util -lkaldi-base -lfst -lfstngram -lm -lavformat -lavcodec -lavutil -lswresample
 endif
-LD_FLAGS += -lm $(pkg-config --libs libavformat libavcodec libavutil)
+#LD_FLAGS += -lm $(pkg-config --libs libavformat libavcodec libavutil libswresample)
 ifeq ($(HAVE_OPENBLAS_CLAPACK), 1)
     CFLAGS += -I$(OPENBLAS_ROOT)/include
     ifeq ($(USE_SHARED), 0)
@@ -111,7 +120,7 @@ endif
 all: $(OUTDIR)/libvosk.$(EXT)
 
 $(OUTDIR)/libvosk.$(EXT): $(VOSK_SOURCES:%.cc=$(OUTDIR)/%.o) $(LIBS)
-	$(CXX) --shared -s -o $@ $^ $(LDFLAGS) $(EXTRA_LDFLAGS)
+	$(CXX) --shared -Wall -s -o $@ $^ $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 $(OUTDIR)/%.o: %.cc $(VOSK_HEADERS)
 	$(CXX) $(CFLAGS) -c -o $@ $<
