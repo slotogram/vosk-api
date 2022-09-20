@@ -921,7 +921,7 @@ bool Recognizer::Compressed_In(const char *filename)
     uint8_t **converted_input_samples = NULL;
         /* Use the encoder's desired frame size for processing. */
         const int output_frame_size = 1024; //output_codec_context->frame_size; 
-        int finished = 0;
+//        int finished = 0;
     int data_present = 0;
 
     /* Open the input file for reading. */
@@ -935,16 +935,16 @@ bool Recognizer::Compressed_In(const char *filename)
     if (open_output_context(sample_frequency_, input_codec_context,
                          &output_codec_context))
         goto cleanup3;
-	fprintf(stderr, "Context opened \n");
+
     /* Initialize the resampler to be able to convert audio sample formats. */
     if (init_resampler(input_codec_context, output_codec_context,
                        &resample_context))
         goto cleanup3;
-	fprintf(stderr, "Resampler opened \n");
+
     /* Initialize the FIFO buffer to store audio samples to be encoded. */
     if (init_fifo(&fifo, output_codec_context))
         goto cleanup3;
-	fprintf(stderr, "Fifo buffer \n");
+
 
 
 
@@ -952,65 +952,76 @@ bool Recognizer::Compressed_In(const char *filename)
 
 //ToDo: check how actually frame_size and fifo buffer size are working
 
-
-
-
     ret = AVERROR_EXIT;
+while (1) {
+        /* Use the encoder's desired frame size for processing. */
+        const int output_frame_size = 1024; //output_codec_context->frame_size;
+        int finished                = 0;
+
+        /* Make sure that there is one frame worth of samples in the FIFO
+         * buffer so that the encoder can do its work.
+         * Since the decoder's and the encoder's frame size may differ, we
+         * need to FIFO buffer to store as many frames worth of input samples
+         * that they make up at least one frame worth of output samples. */
+        while (av_audio_fifo_size(fifo) < output_frame_size) {
+            /* Decode one frame worth of audio samples, convert it to the
+             * output sample format and put it into the FIFO buffer. */
+            if (read_decode_convert_and_store(fifo, input_format_context,
+                                              input_codec_context,
+                                              output_codec_context,
+                                              resample_context, &finished))
+                goto cleanup3;
+
+            /* If we are at the end of the input file, we continue
+             * encoding the remaining audio samples to the output file. */
+            if (finished)
+                break;
+        }
+
+        /* If we have enough samples for the encoder, we encode them.
+         * At the end of the file, we pass the remaining samples to
+         * the encoder. */
+        while (av_audio_fifo_size(fifo) >= output_frame_size ||
+               (finished && av_audio_fifo_size(fifo) > 0)) {
+            /* Take one frame worth of audio samples from the FIFO buffer,
+             * encode it and write it to the output file. */
 
 
-do {
-    /* Initialize temporary storage for one input frame. */
-    if (init_input_frame(&input_frame))
-        goto cleanup2;
+    /* Temporary storage of the output samples of the frame written to the file. */
+    AVFrame *output_frame;
+    /* Use the maximum number of possible samples per frame.
+     * If there is less than the maximum possible frame size in the FIFO
+     * buffer use this number. Otherwise, use the maximum possible frame size. */
+//    const int frame_size = FFMIN(av_audio_fifo_size(fifo), output_codec_context->frame_size);
+    const int frame_size = av_audio_fifo_size(fifo);
+    int data_written;
 
-    /* Decode one frame worth of audio samples. */
-    if (decode_audio_frame(input_frame, input_format_context,
-                           input_codec_context, &data_present, &finished))
-        goto cleanup2;
-    /* If we are at the end of the file and there are no more samples
-     * in the decoder which are delayed, we are actually finished.
-     * This must not be treated as an error. */
+    /* Initialize temporary storage for one output frame. */
+    if (init_output_frame(&output_frame, output_codec_context, frame_size))
+        goto cleanup3;
 
-    if (finished) {
-        ret = 0;
-        goto cleanup2;
+    /* Read as many samples from the FIFO buffer as required to fill the frame.
+     * The samples are stored in the frame temporarily. */
+    if (av_audio_fifo_read(fifo, (void **)output_frame->data, frame_size) < frame_size) {
+        fprintf(stderr, "Could not read data from FIFO\n");
+        av_frame_free(&output_frame);
+        goto cleanup3;
     }
-    /* If there is decoded data, convert and store it. */
-    if (data_present) {
-
-    	int nb_samples = input_frame->nb_samples;
-	if (input_codec_context->sample_rate != output_codec_context->sample_rate) 
-		nb_samples = av_rescale_rnd(swr_get_delay(resample_context, input_codec_context->sample_rate) +
-                                     input_frame->nb_samples, output_codec_context->sample_rate, input_codec_context->sample_rate, AV_ROUND_UP);
-        /* Initialize the temporary storage for the converted input samples. */
-        if (init_converted_samples(&converted_input_samples, output_codec_context,
-                                   nb_samples))
-            goto cleanup2;
-    	if (convert_samples((const uint8_t**)input_frame->extended_data, converted_input_samples,
-                            input_frame->nb_samples, nb_samples, resample_context))
-            goto cleanup2;
-
-        /* Add the converted input samples to the FIFO buffer for later processing. */
-//        if (add_samples_to_fifo(fifo, converted_input_samples, nb_samples))
-	fprintf(stderr, "Before accept waveform, # sapmles: %d\n", nb_samples);
-	//AcceptWaveform((short*)converted_input_samples[0], nb_samples);
-
-        ret = 0;
-
+	
+	//fprintf(stderr, "Before accept waveform, # sapmles: %d\n", frame_size);
+	AcceptWaveform((short*)output_frame->data[0], frame_size);
+	av_frame_free(&output_frame);
     }
-    ret = 0;
 
-cleanup2:
-    if (converted_input_samples) {
-        av_freep(&converted_input_samples[0]);
-        free(converted_input_samples);
+
+        /* If we are at the end of the input file and have encoded
+         * all remaining samples, we can exit this loop and finish. */
+        if (finished) {
+            /* Flush the encoder as it may have delayed frames. */
+            break;
+        }
     }
-    if (input_frame)
-		av_frame_free(&input_frame);
-
-} while (!(finished));
-    ret = 0;
-	fprintf(stderr, "Finished: \n");
+	fprintf(stderr, "Finished audio decoding. \n");
 cleanup3:
     if (fifo)
         av_audio_fifo_free(fifo);
@@ -1021,7 +1032,7 @@ cleanup3:
         avcodec_free_context(&input_codec_context);
     if (input_format_context)
         avformat_close_input(&input_format_context);
-	fprintf(stderr, "Cleaned\n");
+
     return ret;
 }
 
@@ -1182,7 +1193,18 @@ const char* Recognizer::Dir(const char *param_path)
 					if (ext == std::string("mp3") || ext == std::string("ogg")) {
 						Compressed_In(filename.c_str());
 						//ConvertEnc2Wav(filename.c_str());
+						std::cout << filename << std::endl;
+						const char* result = FinalResult();
+						std::string result_cut (result);
+						result_cut = result_cut.substr (result_cut.find(':')+3);
+						result_cut = result_cut.substr (0,result_cut.length()-3);
+                                                printf("%s\n", result);
+						std::string out_name = output_path + "/" + filename + ".txt";
+						std::ofstream out(out_name);
+						out << result_cut;
+						out.close();
 						int returned_res=1;
+						
 						returned_res = rename( en->d_name , (output_path+"/"+filename).c_str());
 					}
 				}

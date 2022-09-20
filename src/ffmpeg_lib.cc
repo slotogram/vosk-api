@@ -405,19 +405,17 @@ int decode_audio_frame(AVFrame *frame,
         return error;
     *data_present = 0;
     	*finished = 0;
-    fprintf(stderr, "1 ");
     /* Read one audio frame from the input file into a temporary packet. */
     if ((error = av_read_frame(input_format_context, input_packet)) < 0) {
         /* If we are at the end of the file, flush the decoder below. */
         if (error == AVERROR_EOF) {
-            *finished = 1; fprintf(stderr, "Finished=1 \n"); }
+            *finished = 1; }
         else {
             fprintf(stderr, "Could not read frame (error '%s')\n",
                     av_err2str(error));
             goto cleanup;
         }
     }
-    fprintf(stderr, "0 ");
     /* Send the audio frame stored in the temporary packet to the decoder.
      * The input audio stream decoder is used to do this. */
     if ((error = avcodec_send_packet(input_codec_context, input_packet)) < 0) {
@@ -425,14 +423,12 @@ int decode_audio_frame(AVFrame *frame,
                 av_err2str(error));
         goto cleanup;
     }
-	fprintf(stderr, "2  ");
     /* Receive one frame from the decoder. */
     error = avcodec_receive_frame(input_codec_context, frame);
 
     /* If the decoder asks for more data to be able to decode a frame,
      * return indicating that no data is present. */
     if (error == AVERROR(EAGAIN)) {
-	fprintf(stderr, "NO Data, go to cleanup \n");
         error = 0;
         goto cleanup;
     /* If the end of the input file is reached, stop decoding. */
@@ -451,10 +447,9 @@ int decode_audio_frame(AVFrame *frame,
     }
 
 cleanup:
-	fprintf(stderr, "Got to cleanup");
+	
 	if (input_packet)
 	    av_packet_free(&input_packet);
-    fprintf(stderr, "Got to end of decode_audio_frame");
     return error;
 }
 
