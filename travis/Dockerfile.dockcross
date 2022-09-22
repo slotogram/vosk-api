@@ -19,9 +19,11 @@ RUN apt-get update && \
         python3-wheel \
         python3-setuptools \
         python3-cffi \
+        yasm \
     && rm -rf /var/lib/apt/lists/*
 
 ARG OPENBLAS_ARGS=
+ARG CROSS_TRIPLE=armv7-linux-gnueabi
 RUN cd /opt \
     && git clone -b vosk --single-branch https://github.com/alphacep/kaldi \
     && cd kaldi/tools \
